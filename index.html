@@ -926,6 +926,15 @@ class AreasPanel{
 
 /* ============================== TREŚĆ KURSU ============================== */
 const CH=[
+ {id:'gitgh', title:'Git a GitHub', short:'Czym jest Git, czym GitHub i jak się różnią. Bez trudnych słów.', panels:['local','remote'],
+  lead:'Te dwie nazwy brzmią podobnie i często padają razem, ale oznaczają dwie różne rzeczy. Zanim zaczniesz, zobacz, która jest która.',
+  init:[], steps:[
+  {t:'Git to program na twoim komputerze', c:['git commit -m "Pierwsza wersja"','git commit -m "Poprawki"'], b:`<p><b>Git</b> to program, który zapamiętuje historię zmian w projekcie. Działa jak zapisywanie stanu gry: w każdej chwili robisz punkt kontrolny, czyli <b>commit</b>, i możesz do niego wrócić.</p><p>Po lewej widzisz swoje repozytorium, czyli projekt razem z całą historią. Każda kropka to jeden commit. Git działa bez internetu i bez zakładania konta, dlatego GitHub po prawej jest na razie pusty.</p>`},
+  {t:'GitHub to miejsce w internecie', c:['git remote add origin https://github.com/zespol/projekt.git','git push -u origin main'], b:`<p><b>GitHub</b> to serwis internetowy, na którym trzymasz kopię swojego repozytorium. Masz dzięki niemu kopię zapasową, możesz pracować z innymi i pokazać projekt światu.</p><p>Polecenie <code>git push</code> wysyła twoją historię na GitHuba. Teraz ta sama historia jest w dwóch miejscach: na twoim komputerze i w chmurze.</p>`},
+  {t:'Praca z innymi', c:['@remote-commit "Zmiana Aleksandry" Aleksandra','git pull'], b:`<p>Aleksandra pracuje nad tym samym projektem na swoim komputerze i wysłała swoją zmianę na GitHuba. Polecenie <code>git pull</code> pobiera ją do ciebie.</p><p>GitHub dokłada też rzeczy, których sam Git nie ma: pull requesty, recenzje kodu czy stronę internetową na GitHub Pages. Poznasz je w kolejnych rozdziałach.</p>`},
+  {t:'Git to narzędzie, GitHub to miejsce', c:[], b:`<p>Najprościej: <b>Git to narzędzie, GitHub to miejsce.</b> Łączą je dwa polecenia: <code>git push</code> wysyła twoją historię na GitHuba, a <code>git pull</code> pobiera z niego zmiany innych.</p><div class="tblwrap"><table class="cmp"><tr><th></th><th>Git</th><th>GitHub</th></tr><tr><td>Co to jest</td><td>program</td><td>serwis w internecie</td></tr><tr><td>Gdzie działa</td><td>na twoim komputerze</td><td>w chmurze</td></tr><tr><td>Internet</td><td>niepotrzebny</td><td>potrzebny</td></tr><tr><td>Konto</td><td>niepotrzebne</td><td>potrzebne</td></tr><tr><td>Do czego</td><td>historia zmian</td><td>współpraca i kopia zapasowa</td></tr><tr><td>Podobne</td><td>—</td><td>GitLab, Bitbucket</td></tr></table></div>`,
+   quiz:{q:'Czego potrzebujesz, żeby zrobić commit?',o:['Konta na GitHubie','Tylko Gita na swoim komputerze','Połączenia z internetem'],a:1,why:'Commit to zapis w twoim lokalnym repozytorium. GitHub i internet są potrzebne dopiero wtedy, gdy chcesz wysłać historię innym (git push) albo pobrać ich zmiany (git pull).'}}
+ ]},
  {id:'obszary', title:'Trzy miejsca na plik', short:'Katalog roboczy, poczekalnia i repozytorium. Skąd się biorą commity.', panels:['areas','local'],
   lead:'Zanim zmiana trafi do historii, przechodzi przez trzy miejsca. Gdy je zrozumiesz, git status przestanie być zagadką.',
   init:[], steps:[
@@ -1055,9 +1064,9 @@ const CH=[
  ]},
 ];
 const SANDBOX={id:'piaskownica', title:'Piaskownica', short:'Dwa terminale, twój i Aleksandry, pull requesty i zadania do wykonania.'};
-const ORDER=['obszary','historia','galezie','merge','github','zespol','cofanie','codzien','rebase','poprawki'];
+const ORDER=['gitgh','obszary','historia','galezie','merge','github','zespol','cofanie','codzien','rebase','poprawki'];
 CH.sort((a,b)=>ORDER.indexOf(a.id)-ORDER.indexOf(b.id));
-const GROUPS=[{t:'Podstawy',ids:ORDER.slice(0,8)},{t:'Zaawansowane',ids:ORDER.slice(8)},{t:'Praktyka',ids:['piaskownica','sciaga']}];
+const GROUPS=[{t:'Podstawy',ids:ORDER.slice(0,9)},{t:'Zaawansowane',ids:ORDER.slice(9)},{t:'Praktyka',ids:['piaskownica','sciaga']}];
 const groupOf=id=>(GROUPS.find(g=>g.ids.includes(id))||{t:''}).t;
 const CHEATSHEET={id:'sciaga', title:'Ściąga', short:'Wszystkie polecenia w jednym miejscu, z wyszukiwarką.'};
 const ALL=[...CH,SANDBOX,CHEATSHEET];
@@ -1145,7 +1154,7 @@ const SHEET=[
 function renderSheet(){
   const idx=ALL.indexOf(CHEATSHEET);
   $('#main').innerHTML=`<section class="lesson">
-    <div class="lhead"><p class="eyebrow">Praktyka · rozdział ${idx+1} z ${ALL.length}</p><h1>Ściąga</h1><p class="lead">Wszystkie polecenia z kursu w jednym miejscu. Kliknij polecenie, żeby je skopiować. Polecenia z etykietą <span class="realtag">nie działa w piaskownicy</span> wypróbujesz tylko w prawdziwym Gicie.</p></div>
+    <div class="lhead"><p class="eyebrow">Praktyka · rozdział ${idx} z ${ALL.length-1}</p><h1>Ściąga</h1><p class="lead">Wszystkie polecenia z kursu w jednym miejscu. Kliknij polecenie, żeby je skopiować. Polecenia z etykietą <span class="realtag">nie działa w piaskownicy</span> wypróbujesz tylko w prawdziwym Gicie.</p></div>
     <div class="sheet-search"><input id="sheetQ" type="search" placeholder="Szukaj, np. push albo cofnij" aria-label="Szukaj polecenia" autocomplete="off"></div>
     <div class="sheet" id="sheet"></div><p class="small" id="sheetEmpty" hidden>Nic nie pasuje do wyszukiwania.</p></section>`;
   const draw=q=>{ q=(q||'').toLowerCase().trim(); let any=false;
@@ -1193,11 +1202,11 @@ function resetUI(box){
 }
 function renderNav(active){
   const n=CH.filter(c=>done[c.id]).length;
-  $('#side').innerHTML=GROUPS.map(G=>`<h3>${G.t}</h3><ol>${G.ids.map(id=>{const c=ALL.find(x=>x.id===id), i=ALL.indexOf(c); return `<li><a href="#${c.id}" class="${c.id===active?'on':''} ${done[c.id]?'done':''}"><span class="dot">${done[c.id]?'✓':i+1}</span>${c.title}</a></li>`;}).join('')}</ol>`).join('')+`
+  $('#side').innerHTML=GROUPS.map(G=>`<h3>${G.t}</h3><ol>${G.ids.map(id=>{const c=ALL.find(x=>x.id===id), i=ALL.indexOf(c); return `<li><a href="#${c.id}" class="${c.id===active?'on':''} ${done[c.id]?'done':''}"><span class="dot">${done[c.id]?'✓':i}</span>${c.title}</a></li>`;}).join('')}</ol>`).join('')+`
    <div class="prog">Ukończone: ${n} z ${CH.length}<div class="bar"><i style="width:${n/CH.length*100}%"></i></div></div>
    <div class="resetbox" data-reset></div>`;
   document.querySelectorAll('[data-reset]').forEach(resetUI);
-  $('#chips').innerHTML=`<a href="#start" class="${active==='start'?'on':''}">Start</a>`+ALL.map((c,i)=>`<a href="#${c.id}" class="${c.id===active?'on':''}">${i+1}. ${c.title}</a>`).join('');
+  $('#chips').innerHTML=`<a href="#start" class="${active==='start'?'on':''}">Start</a>`+ALL.map((c,i)=>`<a href="#${c.id}" class="${c.id===active?'on':''}">${i}. ${c.title}</a>`).join('');
   const on=$('#chips a.on'); if(on) on.scrollIntoView({inline:'center',block:'nearest'});
 }
 let heroTimer=0, lessonKey=null;
@@ -1221,7 +1230,7 @@ function renderHome(){
     <div>
       <h1>Nauka Git <em>i GitHub</em></h1>
       <p>Zobacz, co naprawdę dzieje się w repozytorium, kiedy wpisujesz polecenie. Każdy rozdział to diagram, przez który przechodzisz krok po kroku. Na końcu czeka piaskownica z terminalem, w której sprawdzisz wszystko na własnej skórze.</p>
-      <div class="row"><a class="btn" href="#obszary">Zacznij od początku →</a><a class="btn ghost" href="#piaskownica">Otwórz piaskownicę</a></div>
+      <div class="row"><a class="btn" href="#gitgh">Zacznij od początku →</a><a class="btn ghost" href="#piaskownica">Otwórz piaskownicę</a></div>
     </div>
     <div class="demo" aria-label="Animowany przykład historii w Gicie">
       <div class="demo-cap" id="demoCap">&nbsp;</div>
@@ -1229,7 +1238,7 @@ function renderHome(){
     </div>
   </section>
   ${GROUPS.map(G=>`<h2 class="h2">${G.t}</h2>
-  <ol class="chapters">${G.ids.map(id=>{const c=ALL.find(x=>x.id===id), i=ALL.indexOf(c); return `<li><a href="#${c.id}"><span class="n ${done[c.id]?'done':''}">${i+1}</span><b>${c.title}</b><span class="d">${c.short}${c.steps?` · ${c.steps.length} kroków`:''}</span></a></li>`;}).join('')}</ol>`).join('')}
+  <ol class="chapters">${G.ids.map(id=>{const c=ALL.find(x=>x.id===id), i=ALL.indexOf(c); return `<li><a href="#${c.id}"><span class="n ${done[c.id]?'done':''}">${i}</span><b>${c.title}</b><span class="d">${c.short}${c.steps?` · ${c.steps.length} kroków`:''}</span></a></li>`;}).join('')}</ol>`).join('')}
   <div class="resetbox" data-reset style="margin-top:20px"></div>
   <p class="howto">Po lekcjach poruszasz się przyciskami <i>Dalej</i> i <i>Wstecz</i> albo strzałkami na klawiaturze. Polecenia działają w symulatorze w przeglądarce, więc niczego nie zepsujesz. Komunikaty Gita są po angielsku, tak jak zobaczysz je w prawdziwym terminalu.</p>`;
   document.querySelectorAll('#main [data-reset]').forEach(resetUI);
@@ -1281,7 +1290,7 @@ function renderLesson(ch){
   const idx=CH.indexOf(ch);
   const stepKey='step:'+ch.id; let step=Math.min(store.get(stepKey,0),ch.steps.length-1);
   $('#main').innerHTML=`<section class="lesson">
-    <div class="lhead"><p class="eyebrow">${groupOf(ch.id)} · rozdział ${idx+1} z ${ALL.length}</p><h1>${ch.title}</h1><p class="lead">${ch.lead}</p></div>
+    <div class="lhead"><p class="eyebrow">${groupOf(ch.id)} · rozdział ${idx} z ${ALL.length-1}</p><h1>${ch.title}</h1><p class="lead">${ch.lead}</p></div>
     <div class="stage" id="stage">${panelsHTML(ch.panels,true)}</div>
     <div class="narr">
       <article class="stept" id="stept"></article>
@@ -1372,7 +1381,7 @@ function renderSandbox(){
   const termHTML=(who,label)=>`<div class="term sbterm ${who}" data-who="${who}"><div class="term-h"><i></i><i></i><i></i><span>${label}</span></div><div class="term-b"></div>
     <form class="tform"><span class="pr${who==='ola'?' ola':''}"></span><input id="tin-${who}" aria-label="Polecenie: ${label}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${who==='ola'?'gh pr list':'git status'}"></form></div>`;
   $('#main').innerHTML=`<section class="lesson">
-    <div class="lhead"><p class="eyebrow">Praktyka · rozdział ${ALL.indexOf(SANDBOX)+1} z ${ALL.length}</p><h1>Piaskownica</h1><p class="lead">Masz dwa terminale: swój i Aleksandry. Oboje macie sklonowane to samo repozytorium z GitHuba. Wpisuj polecenia za siebie i za nią: otwieraj pull requesty, recenzuj je w jej imieniu i obserwuj, jak zmiany przechodzą między trzema repozytoriami.</p></div>
+    <div class="lhead"><p class="eyebrow">Praktyka · rozdział ${ALL.indexOf(SANDBOX)} z ${ALL.length-1}</p><h1>Piaskownica</h1><p class="lead">Masz dwa terminale: swój i Aleksandry. Oboje macie sklonowane to samo repozytorium z GitHuba. Wpisuj polecenia za siebie i za nią: otwieraj pull requesty, recenzuj je w jej imieniu i obserwuj, jak zmiany przechodzą między trzema repozytoriami.</p></div>
     <div class="stage" id="stage">${panelsHTML(['local','remote','peer'])}</div>
     <div class="terms">${termHTML('ty','Ty · terminal')}${termHTML('ola','Aleksandra · terminal')}</div>
     <div class="sbgrid">
