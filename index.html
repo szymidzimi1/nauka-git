@@ -1,0 +1,1443 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Interaktywny kurs Gita i GitHuba z animowanymi diagramami, terminalem i piaskownicą.">
+<title>Nauka Git i GitHub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: sidebar spis rozdziałów + scena (diagram) nad narracją i terminalem; tło jak papier milimetrowy z kropek */
+:root{
+  --bg:#edf0f2; --dot:#d3d9de; --surface:#ffffff; --surface-2:#f6f8f9;
+  --ink:#16202a; --muted:#5b6672; --line:#d6dce1;
+  --term-bg:#121820; --term-fg:#d3dde5; --term-dim:#7d8b97; --term-ok:#7fd3a8; --term-err:#ff8f86; --term-cmd:#ffffff; --term-ola:#c4abff;
+  --tag-ink:#ffffff;
+  --l0:#0d8667; --l1:#d9621f; --l2:#7246d1; --l3:#c93573; --l4:#2a72cf; --l5:#8a7c0c;
+  --ok:#0d8667; --bad:#c9372c;
+  --fs:1;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1318; --dot:#1e2731; --surface:#151c23; --surface-2:#1a232c;
+  --ink:#e4ebf0; --muted:#93a1ad; --line:#2a3541;
+  --term-bg:#090d11; --term-fg:#cfdae2; --term-dim:#6f7d89; --term-ok:#6fd4a2; --term-err:#ff8a80; --term-cmd:#ffffff; --term-ola:#c4abff;
+  --tag-ink:#0b1015;
+  --l0:#2fc597; --l1:#ff8a4a; --l2:#a68bff; --l3:#ff6ea5; --l4:#5ea6ff; --l5:#d6c447;
+  --ok:#2fc597; --bad:#ff7b70; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1318; --dot:#1e2731; --surface:#151c23; --surface-2:#1a232c;
+  --ink:#e4ebf0; --muted:#93a1ad; --line:#2a3541;
+  --term-bg:#090d11; --term-fg:#cfdae2; --term-dim:#6f7d89; --term-ok:#6fd4a2; --term-err:#ff8a80; --term-cmd:#ffffff; --term-ola:#c4abff;
+  --tag-ink:#0b1015;
+  --l0:#2fc597; --l1:#ff8a4a; --l2:#a68bff; --l3:#ff6ea5; --l4:#5ea6ff; --l5:#d6c447;
+  --ok:#2fc597; --bad:#ff7b70; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);background-image:radial-gradient(var(--dot) 1px,transparent 1.2px);background-size:22px 22px;color:var(--ink);font-family:var(--f-body);font-size:calc(15px * var(--fs));line-height:1.55}
+a{color:inherit}
+code,kbd{font-family:var(--f-mono);font-size:.86em;background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:.05em .35em;white-space:nowrap}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--l4);outline-offset:2px;border-radius:4px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{display:flex;align-items:center;gap:20px;padding-block:10px;max-width:1480px;margin:0 auto;padding-left:max(clamp(16px,2vw,28px),env(safe-area-inset-left,0px));padding-right:max(clamp(16px,2vw,28px),env(safe-area-inset-right,0px))}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--f-display);font-weight:800;font-size:calc(18px * var(--fs));letter-spacing:-.01em;white-space:nowrap}
+.logo .lt{white-space:nowrap}
+.fsz{margin-left:auto;display:flex;align-items:center;gap:6px;flex:none}
+.fsz span{font-size:12px;color:var(--muted)}
+.fsz .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.fsz button{border:0;background:var(--surface);padding:3px 0;width:30px;font:600 12px var(--f-mono);color:var(--muted)}
+.fsz button+button{border-left:1px solid var(--line)}
+.fsz button.on{background:var(--ink);color:var(--surface)}
+@media (max-width:640px){.fsz span{display:none}.fsz button{width:26px}}
+@media (max-width:999px){.top-in{flex-wrap:wrap;row-gap:8px}#chips{order:3;flex-basis:100%}}
+#chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0}
+#chips::-webkit-scrollbar{display:none}
+#chips a{flex:none;text-decoration:none;font-size:calc(12px * var(--fs));padding:4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+#chips a.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+.shell{display:grid;grid-template-columns:1fr;max-width:1480px;margin:0 auto;padding-left:max(clamp(16px,2vw,28px),env(safe-area-inset-left,0px));padding-right:max(clamp(16px,2vw,28px),env(safe-area-inset-right,0px));gap:36px}
+#side{display:none}
+@media (min-width:1000px){
+  .shell{grid-template-columns:230px minmax(0,1fr)}
+  #side{display:block;position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px);align-self:start;padding-block:28px}
+  #chips{display:none}
+}
+#side h3+ol{margin-bottom:18px}
+#side h3{font-family:var(--f-body);font-size:calc(11px * var(--fs));text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 10px;font-weight:600}
+#side ol{list-style:none;margin:0;padding:0;display:grid;gap:2px;position:relative}
+#side ol::before{content:"";position:absolute;left:11px;top:14px;bottom:14px;width:2px;background:var(--line)}
+#side a{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:center;text-decoration:none;padding:7px 8px 7px 0;border-radius:6px;font-size:calc(13.5px * var(--fs));color:var(--muted);position:relative}
+#side a .dot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:600 calc(11px * var(--fs)) var(--f-mono);background:var(--surface);border:2px solid var(--line);color:var(--muted)}
+#side a:hover{color:var(--ink)}
+#side a.on{color:var(--ink);font-weight:600}
+#side a.on .dot{border-color:var(--l0);color:var(--l0)}
+#side a.done .dot{background:var(--l0);border-color:var(--l0);color:var(--tag-ink)}
+#side .prog{margin-top:18px;font-size:calc(12px * var(--fs));color:var(--muted)}
+#side .bar{height:6px;background:var(--line);border-radius:3px;margin-top:6px;overflow:hidden}
+#side .bar i{display:block;height:100%;background:var(--l0);border-radius:3px;transition:width .4s}
+
+main{min-width:0;padding-block:40px 80px}
+
+/* Home */
+.hero{display:grid;gap:28px;align-items:center;grid-template-columns:1fr;padding-block:8px 24px}
+@media (min-width:860px){.hero{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}}
+.hero h1{font-family:var(--f-display);font-weight:800;font-size:calc(clamp(38px,5.6vw,64px) * var(--fs));line-height:.98;letter-spacing:-.03em;margin:0 0 16px;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--l0)}
+.hero p{font-size:calc(17px * var(--fs));color:var(--muted);max-width:34em;margin:0 0 22px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;font-weight:600;text-decoration:none;font-size:calc(14px * var(--fs))}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink)}
+.btn[disabled]{opacity:.35;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.demo{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;min-width:0}
+.demo-cap{display:flex;gap:10px;align-items:center;font-family:var(--f-mono);font-size:calc(12px * var(--fs));padding:10px 14px;background:var(--term-bg);color:var(--term-fg);min-height:40px}
+.demo-cap b{color:var(--term-ok);font-weight:600}
+.chapters{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.chapters a{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;text-decoration:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;height:100%}
+.chapters a:hover{border-color:var(--ink)}
+.chapters .n{grid-row:span 2;font:700 calc(25px * var(--fs))/1 var(--f-display);color:var(--l0);min-width:30px}
+.chapters .n.done::after{content:" ✓";font-size:calc(15px * var(--fs))}
+.chapters b{font-family:var(--f-display);font-size:calc(18px * var(--fs));font-weight:700;letter-spacing:-.01em}
+.chapters span.d{color:var(--muted);font-size:calc(13px * var(--fs))}
+.h2{font-family:var(--f-display);font-weight:700;font-size:calc(25px * var(--fs));letter-spacing:-.02em;margin:28px 0 0}
+.howto{margin-top:28px;color:var(--muted);font-size:calc(13px * var(--fs));max-width:60em}
+
+/* Lesson */
+.lhead .eyebrow{font-size:calc(11px * var(--fs));text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:0 0 6px;font-weight:600}
+.lhead h1{font-family:var(--f-display);font-weight:800;font-size:calc(clamp(28px,3.8vw,41px) * var(--fs));letter-spacing:-.025em;line-height:1.05;margin:0 0 8px;text-wrap:balance}
+.lhead .lead{color:var(--muted);font-size:calc(16px * var(--fs));max-width:44em;margin:0 0 20px}
+.stage{background:var(--surface);border:1px solid var(--line);border-radius:12px;position:relative;min-width:0}
+.panels{display:grid;grid-template-columns:1fr;min-width:0}
+.panels.two{grid-template-columns:1fr}
+@media (min-width:1180px){.panels.three{grid-template-columns:repeat(3,minmax(0,1fr))}.panels.three .panel+.panel{border-left:1px solid var(--line);border-top:0}}
+.prlist{padding:0 14px 14px;display:grid;gap:8px}
+.prhead{font-size:calc(11px * var(--fs));text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.prhead span{text-transform:none;letter-spacing:0;font-weight:400}
+.prcard{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface-2);font-size:calc(12.5px * var(--fs));min-width:0}
+.prt{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.prm{color:var(--muted);font-size:calc(11.5px * var(--fs));margin-top:4px}
+.prr{font-size:calc(11.5px * var(--fs));margin-top:4px}
+.prr.APPROVED{color:var(--ok)} .prr.CHANGES_REQUESTED{color:var(--l1)}
+.pill{font-size:calc(11px * var(--fs));font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid currentColor;margin-left:auto;white-space:nowrap}
+.pill.ok{color:var(--ok)} .pill.chg{color:var(--l1)} .pill.wait{color:var(--muted)} .pill.mrg{color:var(--l2)} .pill.cls{color:var(--muted)}
+.prempty{font-size:calc(12px * var(--fs));color:var(--muted)}
+.terms{display:grid;grid-template-columns:1fr;gap:16px;margin-top:20px}
+@media (min-width:900px){.terms{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.term.ola .term-h span{color:var(--term-ola)}
+.term.active{box-shadow:0 0 0 2px var(--l0)}
+.term.ola.active{box-shadow:0 0 0 2px var(--l2)}
+@media (min-width:900px){.panels.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.panels.two .panel+.panel{border-left:1px solid var(--line);border-top:0}}
+.panel{min-width:0;display:flex;flex-direction:column}
+.panel+.panel{border-top:1px solid var(--line)}
+.ptitle{display:flex;align-items:center;gap:8px;font-size:calc(11px * var(--fs));text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;padding:12px 16px 0}
+.ptitle svg{flex:none}
+.pbody{overflow-x:auto;min-height:150px;display:flex;align-items:center;padding:4px 0 8px}
+.pbody svg{display:block;flex:none;margin:0 auto}
+.placeholder{padding:28px 18px;color:var(--muted);font-size:calc(13px * var(--fs));text-align:center;width:100%}
+
+svg .edge{fill:none;stroke:var(--lc);stroke-width:3;stroke-linecap:round}
+svg .node circle.c{fill:var(--lc);stroke:var(--surface);stroke-width:3}
+svg .node circle.inner{fill:var(--surface)}
+svg .node.ghost circle.c{fill:var(--surface);stroke:var(--lc);stroke-dasharray:3 3;stroke-width:2}
+svg .node.ghost{opacity:.5}
+svg .node.head circle.c{stroke:var(--ink);stroke-width:2.5}
+svg text{font-family:var(--f-mono)}
+svg .hash{font-size:10.5px;fill:var(--muted);text-anchor:middle}
+svg .msg{font-size:10.5px;fill:var(--ink);text-anchor:middle;font-family:var(--f-body)}
+svg .tag rect{fill:var(--lc);stroke:var(--lc)}
+svg .tag text{font-size:11px;font-weight:600;fill:var(--tag-ink);text-anchor:middle}
+svg .tag.trk rect{fill:var(--surface);stroke-dasharray:3 2;stroke-width:1.5}
+svg .tag.trk text{fill:var(--lc)}
+svg .tag.head rect{fill:var(--ink);stroke:var(--ink)}
+svg .tag.head text{fill:var(--surface)}
+svg .stem{stroke:var(--muted);stroke-width:1;opacity:.6}
+.lane0{--lc:var(--l0)}.lane1{--lc:var(--l1)}.lane2{--lc:var(--l2)}.lane3{--lc:var(--l3)}.lane4{--lc:var(--l4)}.lane5{--lc:var(--l5)}
+
+/* Areas */
+.areas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;padding:14px 10px 16px;width:100%}
+.area{padding:0 8px;display:flex;flex-direction:column;gap:8px;min-width:0;position:relative}
+.area+.area{border-left:1px dashed var(--line)}
+.area h4{margin:0;font-family:var(--f-display);font-size:calc(14px * var(--fs));font-weight:700;letter-spacing:-.01em}
+.area p{margin:0;font-size:calc(11px * var(--fs));color:var(--muted);line-height:1.3}
+.chipsbox{display:flex;flex-direction:column;gap:6px;min-height:72px}
+.fchip{display:flex;align-items:center;justify-content:space-between;gap:6px;font-family:var(--f-mono);font-size:calc(11px * var(--fs));padding:6px 8px;border-radius:6px;border:1.5px solid var(--line);background:var(--surface-2);min-width:0}
+.fchip .fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fchip .v{font-size:10.5px;color:var(--muted);flex:none}
+.fchip.untracked{border-color:var(--l3);border-style:dashed}
+.fchip.modified{border-color:var(--l1)}
+.fchip.staged{border-color:var(--l0);background:color-mix(in srgb,var(--l0) 12%,var(--surface))}
+.fchip .st{font-family:var(--f-body);font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.fchip.untracked .st{color:var(--l3)} .fchip.modified .st{color:var(--l1)} .fchip.staged .st{color:var(--l0)}
+.empty-note{font-size:calc(11px * var(--fs));color:var(--muted);font-style:italic}
+@media (max-width:560px){.areas{grid-template-columns:1fr}.area+.area{border-left:0;border-top:1px dashed var(--line);padding-top:10px;margin-top:10px}.chipsbox{min-height:0}}
+
+.to-sb{margin-left:auto;font-size:calc(11px * var(--fs));padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--muted)}
+.to-sb:hover{color:var(--ink);border-color:var(--ink)}
+
+.legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:calc(11px * var(--fs));color:var(--muted);padding:8px 16px 12px;border-top:1px solid var(--line)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--l0)}
+.legend i.g{background:transparent;border:1.5px dashed var(--muted)}
+.legend i.m{background:var(--l0);box-shadow:inset 0 0 0 3px var(--l0),inset 0 0 0 5px var(--surface)}
+.legend i.t{border-radius:3px;background:transparent;border:1.5px dashed var(--l0);width:16px}
+
+.narr{display:grid;grid-template-columns:1fr;gap:20px;margin-top:20px}
+@media (min-width:900px){.narr{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}}
+.stept{min-width:0}
+.stepnum{font:600 calc(11px * var(--fs)) var(--f-mono);color:var(--l0);margin:0 0 4px;letter-spacing:.04em}
+.stept h2{font-family:var(--f-display);font-weight:700;font-size:calc(25px * var(--fs));letter-spacing:-.02em;margin:0 0 10px;line-height:1.15;text-wrap:balance}
+.stept .body p{margin:0 0 12px;max-width:62ch}
+.stept .body ul{margin:0 0 12px;padding-left:20px}
+.stept .body li{margin-bottom:4px}
+pre.code{font-family:var(--f-mono);font-size:calc(12px * var(--fs));background:var(--term-bg);color:var(--term-fg);padding:12px 14px;border-radius:8px;overflow-x:auto;margin:0 0 12px;line-height:1.5}
+table.cmp{border-collapse:collapse;font-size:calc(13px * var(--fs));margin:4px 0 12px;width:100%;max-width:520px}
+table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+table.cmp th{font-family:var(--f-mono);font-size:calc(12px * var(--fs))}
+.tblwrap{overflow-x:auto}
+
+.ctrl{display:flex;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap}
+.dots{display:flex;gap:6px;flex-wrap:wrap}
+.dots button{width:26px;height:6px;border-radius:3px;border:0;background:var(--line);padding:0}
+.dots button.past{background:color-mix(in srgb,var(--l0) 45%,var(--line))}
+.dots button.on{background:var(--l0)}
+.ctrl .sp{flex:1}
+.kbd-hint{font-size:calc(11px * var(--fs));color:var(--muted)}
+
+.term{background:var(--term-bg);color:var(--term-fg);border-radius:10px;font-family:var(--f-mono);font-size:calc(11.5px * var(--fs));line-height:1.5;min-width:0;display:flex;flex-direction:column;overflow:hidden;align-self:start}
+.term-h{display:flex;gap:6px;align-items:center;padding:7px 12px;border-bottom:1px solid color-mix(in srgb,var(--term-fg) 14%,transparent);color:var(--term-dim);font-size:calc(11px * var(--fs))}
+.term-h i{width:9px;height:9px;border-radius:50%;background:color-mix(in srgb,var(--term-fg) 25%,transparent)}
+.term-h span{margin-left:6px}
+.term-b{padding:10px 12px;overflow:auto;max-height:280px;min-height:90px}
+.tl{white-space:pre-wrap;word-break:break-word}
+.tl .pr{color:var(--term-ok)}
+.tl .pr.ola,.tform .pr.ola{color:var(--term-ola)}
+.tl .cm{color:var(--term-cmd);font-weight:600}
+.tl.out{color:var(--term-fg);opacity:.85;margin-bottom:8px}
+.tl.err{color:var(--term-err);margin-bottom:8px}
+.tl.note{color:var(--term-dim);font-style:italic;margin-bottom:8px}
+.tl.idle{color:var(--term-dim)}
+.tl.new{animation:tin .35s ease-out both}
+@keyframes tin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.quiz{margin-top:18px;border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--surface)}
+.quiz h3{margin:0 0 10px;font-size:calc(11px * var(--fs));text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.quiz .q{font-weight:600;margin:0 0 12px}
+.quiz .opts{display:grid;gap:8px}
+.quiz .opts button{text-align:left;padding:10px 12px;border-radius:8px;border:1.5px solid var(--line);background:var(--surface-2)}
+.quiz .opts button:hover{border-color:var(--ink)}
+.quiz .opts button.good{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--surface))}
+.quiz .opts button.badc{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,var(--surface))}
+.quiz .why{margin:12px 0 0;font-size:calc(13px * var(--fs))}
+.quiz .why b{color:var(--ok)}
+.next-ch{margin-top:14px}
+
+/* Sandbox */
+.sheet-search{margin:0 0 16px}
+.sheet-search input{width:100%;max-width:420px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit}
+.sheet{columns:2 420px;column-gap:16px}
+.sgroup{break-inside:avoid;margin-bottom:16px}
+.sgroup h3{font-family:var(--f-display);margin:0 0 8px;font-size:calc(17px * var(--fs))}
+.sgroup dl{margin:0;display:grid;gap:8px}
+.srow{display:grid;gap:2px}
+.srow dt{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.srow dd{margin:0;color:var(--muted);font-size:calc(13.5px * var(--fs))}
+.scode{font-family:var(--f-mono);font-size:calc(12.5px * var(--fs));background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:2px 7px;text-align:left;word-break:break-word}
+.scode:hover{border-color:var(--ink)}
+.scode.copied{border-color:var(--ok);color:var(--ok)}
+.scode.copied::after{content:"  skopiowano";font-family:var(--f-body)}
+.realtag{font-size:11px;color:var(--l1);border:1px solid currentColor;border-radius:999px;padding:0 7px;white-space:nowrap}
+.resetbox{margin-top:14px;font-size:calc(13px * var(--fs))}
+.linkbtn{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;font:inherit}
+.linkbtn:hover{color:var(--bad)}
+.confirm{border:1px solid var(--bad);border-radius:8px;padding:10px 12px;background:var(--surface);display:grid;gap:8px}
+.confirm p{margin:0;color:var(--ink)}
+.confirm .row{gap:8px}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff;padding:6px 12px;font-size:calc(13px * var(--fs))}
+.btn.small{padding:6px 12px;font-size:calc(13px * var(--fs))}
+.sbgrid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
+.taskcard{padding:18px 20px}
+.tc-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.tc-top h3{margin:0}
+.tc-dots{display:flex;gap:6px;margin:10px 0 14px;flex-wrap:wrap}
+.tc-dots button{width:34px;height:8px;border-radius:4px;border:0;padding:0;background:var(--line)}
+.tc-dots button.ok{background:color-mix(in srgb,var(--l0) 55%,var(--line))}
+.tc-dots button.on{outline:2px solid var(--ink);outline-offset:2px}
+.tc-main{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+.tc-text{margin:0;font-size:calc(17px * var(--fs));font-weight:500;line-height:1.45;max-width:60ch}
+.tc-ok{margin:10px 0 0;color:var(--ok);font-weight:600}
+.taskcard .hint{margin-top:12px}
+.taskcard .hint::before{right:14px}
+.tc-nav{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+.tc-nav .sp{flex:1}
+.cheatwrap{display:grid;gap:12px;justify-items:start}
+.cheatwrap .card{width:100%}
+.sbterm .term-b{height:220px;max-height:none}
+.tform{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid color-mix(in srgb,var(--term-fg) 14%,transparent)}
+.tform .pr{color:var(--term-ok);white-space:nowrap}
+.tform input{flex:1;min-width:0;background:transparent;border:0;color:var(--term-cmd);font:inherit;outline:none;caret-color:var(--term-ok)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.card h3{font-family:var(--f-display);font-size:calc(17px * var(--fs));margin:0 0 10px;letter-spacing:-.01em}
+.tasks{list-style:none;padding:0;margin:0;display:grid;gap:8px;font-size:calc(13px * var(--fs))}
+.tasks li{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:8px;align-items:start}
+.hintbtn{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);padding:0;margin-top:-3px}
+.hintbtn:hover{color:var(--l5);border-color:var(--l5)}
+.hintbtn.on{color:var(--tag-ink);background:var(--l5);border-color:var(--l5)}
+.hint{grid-column:2/-1;position:relative;background:var(--surface-2);border:1px solid var(--l5);border-radius:10px;padding:10px 12px;margin-top:2px;color:var(--ink)}
+.hint::before{content:"";position:absolute;top:-7px;right:9px;width:12px;height:12px;background:var(--surface-2);border-left:1px solid var(--l5);border-top:1px solid var(--l5);transform:rotate(45deg)}
+.hint-h,.hint-n{margin:0;font-size:calc(11.5px * var(--fs));color:var(--muted)}
+.hint-n{margin-top:8px}
+.hint-l{display:grid;gap:4px;margin-top:6px}
+.hint-l button{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid transparent;background:none;padding:3px 4px;border-radius:6px;min-width:0}
+.hint-l button:hover{border-color:var(--line);background:var(--surface)}
+.hint-l code{white-space:normal;word-break:break-word}
+.hw{flex:none;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;width:76px;color:var(--l0)}
+.hw.ola{color:var(--l2)}
+.tasks li::before{content:"";width:16px;height:16px;border-radius:4px;border:1.5px solid var(--line);margin-top:3px}
+.tasks li.ok::before{background:var(--l0);border-color:var(--l0)}
+.tasks li.ok>span{color:var(--muted)}
+.cheat{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.cheat button{font-family:var(--f-mono);font-size:calc(11px * var(--fs));padding:4px 8px;border-radius:5px;border:1px solid var(--line);background:var(--surface-2)}
+.cheat button:hover{border-color:var(--ink)}
+.side-stack{display:grid;gap:16px;align-content:start}
+.small{font-size:calc(12px * var(--fs));color:var(--muted)}
+
+@media (prefers-reduced-motion:reduce){.tl.new{animation:none}}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="top-in">
+  <a class="logo" href="#start" aria-label="Nauka Git i GitHub, strona główna">
+    <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M19.5 9.5A8.5 8.5 0 1 0 21.5 15H14.5" fill="none" stroke="var(--l0)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19.5 9.5C21 7 22.6 5.6 24.6 5" fill="none" stroke="var(--l1)" stroke-width="2.4" stroke-linecap="round"/><circle cx="25.2" cy="4.8" r="2.9" fill="var(--l1)"/></svg>
+    <span class="lt">Nauka Git i GitHub</span></a>
+  <nav id="chips" aria-label="Rozdziały"></nav>
+  <div class="fsz" role="group" aria-label="Rozmiar tekstu"><span>Tekst</span><div class="seg" id="fsz"></div></div>
+</div></header>
+<div class="shell">
+  <aside id="side" aria-label="Spis rozdziałów"></aside>
+  <main id="main"></main>
+</div>
+
+<script>
+/* ============================== SILNIK GITA (symulacja) ============================== */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function fnv(str){let h=0x811c9dc5;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}h^=h>>>13;h=Math.imul(h,0x5bd1e995)>>>0;h^=h>>>15;return h>>>0;}
+
+function newLocal(cloned){return {has:{}, branches:{}, head:{b:'main'}, tracking:{}, upstream:{}, cloned, reflog:[], orig:null};}
+function newState(mode){
+  return {mode:mode||'lesson', commits:{}, n:0, lanes:{main:0}, laneN:1, prN:1, project:'projekt', me:'ty',
+    local:newLocal(true), peer:null, peerFiles:{}, prs:[], remote:null, files:{}, flags:{}};
+}
+const WHO={ty:'Ty',ola:'Aleksandra'};
+const me=s=>WHO[s.me||'ty'];
+/* Druga osoba: na czas polecenia podmieniamy lokalne repozytorium i pliki */
+function withUser(s,who,fn){
+  if(who!=='ola') return fn();
+  if(!s.peer){s.peer=newLocal(false); s.peerFiles={};}
+  const L=s.local,F=s.files,M=s.me;
+  s.local=s.peer; s.files=s.peerFiles||{}; s.peer=L; s.peerFiles=F; s.me='ola';
+  try{return fn();}finally{ s.peer=s.local; s.peerFiles=s.files; s.local=L; s.files=F; s.me=M; }
+}
+function laneOf(s,name){ if(!(name in s.lanes)) s.lanes[name]=s.laneN++; return s.lanes[name]; }
+function mk(s,parents,msg,lane,author){
+  let salt=0,id;
+  do{ id=fnv(`${s.n}|${msg}|${parents.join(',')}|${salt++}`).toString(16).padStart(8,'0').slice(0,7); }while(s.commits[id]);
+  s.commits[id]={id,parents:parents.filter(Boolean),msg,idx:s.n++,lane,author:author||'Ty'};
+  if(s.files&&Object.keys(s.files).length){ const sn={}; for(const [n,f] of Object.entries(s.files)) if(f.head!==null) sn[n]=f.head; s.commits[id].snap=sn; }
+  return id;
+}
+function headId(s){const h=s.local.head; return h.b ? s.local.branches[h.b] : h.id;}
+function setHead(s,id,action){const h=s.local.head; if(h.b) s.local.branches[h.b]=id; else h.id=id; s.local.reflog.push({id,action});}
+function anc(s,id){const out=new Set();const st=id?[id]:[];while(st.length){const c=st.pop();if(!c||out.has(c)||!s.commits[c])continue;out.add(c);st.push(...s.commits[c].parents);}return out;}
+function curLane(s){const h=s.local.head; if(h.b) return laneOf(s,h.b); const p=headId(s); return p? s.commits[p].lane:0;}
+function msgOf(s,id){return s.commits[id]?s.commits[id].msg:'';}
+
+function resolve(s,ref){
+  if(!ref) return null;
+  const m=ref.match(/^(.*?)((?:[~^]\d*)*)$/); const base=m[1], suf=m[2]; let id=null; const L=s.local;
+  if(base==='HEAD'||base==='@') id=headId(s);
+  else if(base==='ORIG_HEAD') id=L.orig;
+  else if(L.branches[base]) id=L.branches[base];
+  else if(L.tracking[base]) id=L.tracking[base];
+  else if(/^[0-9a-f]{4,40}$/.test(base)){const ms=Object.keys(L.has).filter(k=>k.startsWith(base.slice(0,7)));if(ms.length===1) id=ms[0];}
+  if(!id) return null;
+  const re=/([~^])(\d*)/g; let mm;
+  while((mm=re.exec(suf))){const n=mm[2]===''?1:+mm[2];
+    if(mm[1]==='~'){for(let i=0;i<n;i++){id=s.commits[id].parents[0]; if(!id) return null;}}
+    else if(n>0){id=s.commits[id].parents[n-1]; if(!id) return null;}}
+  return id;
+}
+function tokenize(line){const out=[];const re=/"([^"]*)"|'([^']*)'|„([^”"]*)[”"]|(\S+)/g;let m;while((m=re.exec(line))) out.push(m[1]??m[2]??m[3]??m[4]);return out;}
+function decorate(s,id){
+  const L=s.local, p=[];
+  if(!L.head.b && L.head.id===id) p.push('HEAD');
+  if(L.head.b && L.branches[L.head.b]===id) p.push('HEAD -> '+L.head.b);
+  for(const [b,v] of Object.entries(L.branches)) if(v===id && b!==L.head.b) p.push(b);
+  for(const [b,v] of Object.entries(L.tracking)) if(v===id) p.push(b);
+  return p.length?`(${p.join(', ')}) `:'';
+}
+function promptOf(s){
+  const u=(s.peer&&s.peer.cloned)||s.me==='ola'?(s.me==='ola'?'aleksandra':'ty')+'@laptop ':'';
+  if(!s.local.cloned) return `${u}~ $`;
+  const h=s.local.head; const where=h.b? h.b : (headId(s)||'').slice(0,7);
+  return `${u}~/${s.project} (${where}) $`;
+}
+function stagedFiles(s){return Object.entries(s.files).filter(([n,f])=>f.idx!==null&&f.idx!==f.head).map(([n])=>n);}
+
+const TEAM_MSGS=['Nowe zdjęcia','Poprawka w koszyku','Tłumaczenie na angielski','Szybsze ładowanie','Nowy kolor przycisku','Literówka w stopce'];
+
+function run(s,line){
+  line=line.trim(); let who='ty'; const m=line.match(/^(ola|aleksandra|ty):\s*(.*)$/i);
+  if(m){who=m[1].toLowerCase()==='ty'?'ty':'ola'; line=m[2];}
+  const r=withUser(s,who,()=>run1(s,line)); r.who=who; return r;
+}
+function run1(s,line){
+  const prompt=promptOf(s);
+  line=line.trim();
+  const res={prompt, line, out:'', kind:'out'};
+  const t=tokenize(line);
+  if(!t.length){res.kind='skip';return res;}
+  try{
+    if(t[0]==='edit'||t[0]==='edytuj'){ return Object.assign(res,cmdEdit(s,t.slice(1))); }
+    if(t[0].startsWith('@')){ return Object.assign(res,special(s,t)); }
+    if(t[0]==='kolega'){ const msg=t.slice(1).join(' ')||TEAM_MSGS[(s.n)%TEAM_MSGS.length]; return Object.assign(res,special(s,['@remote-commit',msg,'Aleksandra'])); }
+    if(t[0]==='gh'){ return Object.assign(res,gh(s,t.slice(1))); }
+    if(t[0]!=='git'){ res.kind='err'; res.out=`Nieznane polecenie: ${t[0]}. Wpisz „pomoc”, żeby zobaczyć listę.`; return res; }
+    const sub=t[1], a=t.slice(2);
+    if(!s.local.cloned && !['clone','init','help','--version'].includes(sub)){res.kind='err';res.out='fatal: not a git repository (or any of the parent directories): .git';return res;}
+    const r = GIT[sub] ? GIT[sub](s,a) : {err:`git: '${sub||''}' is not a git command. See 'git --help'.\n(Symulator obsługuje: ${Object.keys(GIT).filter(k=>!k.startsWith('-')).join(', ')})`};
+    if(r.err){res.kind='err';res.out=r.err;} else res.out=r.out||'';
+  }catch(e){res.kind='err';res.out='Błąd symulatora: '+e.message;}
+  return res;
+}
+function cmdEdit(s,a){
+  if(!a[0]) return {kind:'err',out:'Podaj nazwę pliku, np. edit index.html'};
+  const n=a[0]; const f=s.files[n]||(s.files[n]={head:null,idx:null,wd:null,max:0});
+  f.wd=++f.max;
+  return {kind:'note',out:`✎ zmieniasz plik ${n} w edytorze`};
+}
+function special(s,t){
+  if(t[0]==='@remote-init'){ s.remote={has:{},branches:{}}; s.local.cloned=false; s.peer=newLocal(false); s.peerFiles={}; s.project=t[1]||'sklep'; return {kind:'skip'}; }
+  if(t[0]==='@remote-commit'){
+    if(!s.remote) return {kind:'err',out:'Nie ma zdalnego repozytorium. Najpierw: git remote add origin https://github.com/ty/projekt.git'};
+    const p=s.remote.branches.main; const id=mk(s,[p],t[1]||'Zmiana',laneOf(s,'main'),t[2]||'Aleksandra');
+    s.remote.has[id]=1; s.remote.branches.main=id; if(t[2]!=='Ty') s.flags.teammate=id; if(!s.remote.branches.main) laneOf(s,'main');
+    return {kind:'note',out:`# ${t[2]||'Aleksandra'} wypycha na GitHuba commit „${t[1]||'Zmiana'}” (${id})`};
+  }
+  if(t[0]==='@remote-merge'){
+    const R=s.remote; const b=t[1];
+    if(!R||!b||!R.branches[b]) return {kind:'err',out:`Na GitHubie nie ma gałęzi ${b||''}. Najpierw ją wypchnij: git push -u origin ${b||'nazwa'}`};
+    if(b==='main') return {kind:'err',out:'Pull request scala inną gałąź do main.'};
+    const rm=R.branches.main, rb=R.branches[b];
+    if(anc(s,rm).has(rb)) return {kind:'err',out:`Gałąź ${b} jest już w main, nie ma czego scalać.`};
+    const nr=s.prN++; const id=mk(s,[rm,rb],`Merge pull request #${nr} from zespol/${b}`,laneOf(s,'main'),'Aleksandra');
+    R.has[id]=1; R.branches.main=id; s.flags.prMerged=true;
+    return {kind:'note',out:`# Na GitHubie: Aleksandra klika „Merge pull request #${nr}” (${b} → main)`};
+  }
+  return {kind:'err',out:'?'};
+}
+function walkOut(lines){return lines.filter(x=>x!==null&&x!==undefined).join('\n');}
+
+const GIT={
+  init(s){return {out:s.n?`Reinitialized existing Git repository in /home/ty/${s.project}/.git/`:`Initialized empty Git repository in /home/ty/${s.project}/.git/`};},
+  config(s,a){ s.config=s.config||{}; const pos=a.filter(x=>!x.startsWith('--')); if(a.includes('--list')||a.includes('-l')) return {out:Object.entries(s.config).map(([k,v])=>k+'='+v).join('\n')||'user.name=Ty'}; if(!pos[0]) return {err:'usage: git config [<options>]'}; if(pos.length===1) return {out:s.config[pos[0]]??''}; s.config[pos[0]]=pos.slice(1).join(' '); return {out:''}; },
+  status(s){
+    const L=s.local, h=headId(s), lines=[];
+    lines.push(L.head.b?`On branch ${L.head.b}`:`HEAD detached at ${h}`);
+    const tr=L.head.b && L.tracking['origin/'+L.head.b];
+    if(tr && L.upstream[L.head.b]){
+      const A=anc(s,h), B=anc(s,tr); const ahead=[...A].filter(x=>!B.has(x)).length, behind=[...B].filter(x=>!A.has(x)).length;
+      const o='origin/'+L.head.b;
+      if(!ahead&&!behind) lines.push(`Your branch is up to date with '${o}'.`);
+      else if(ahead&&!behind) lines.push(`Your branch is ahead of '${o}' by ${ahead} commit${ahead>1?'s':''}.\n  (use "git push" to publish your local commits)`);
+      else if(!ahead&&behind) lines.push(`Your branch is behind '${o}' by ${behind} commit${behind>1?'s':''}, and can be fast-forwarded.\n  (use "git pull" to update your local branch)`);
+      else lines.push(`Your branch and '${o}' have diverged,\nand have ${ahead} and ${behind} different commits each, respectively.`);
+    }
+    if(!h) lines.push('\nNo commits yet');
+    const F=Object.entries(s.files);
+    const staged=F.filter(([n,f])=>f.idx!==null&&f.idx!==f.head);
+    const mod=F.filter(([n,f])=>(f.idx!==null||f.head!==null)&&f.wd!==f.idx);
+    const untr=F.filter(([n,f])=>f.idx===null&&f.head===null&&f.wd!==null);
+    if(staged.length) lines.push('\nChanges to be committed:\n'+staged.map(([n,f])=>`\t${f.head===null?'new file:':'modified:'}   ${n}`).join('\n'));
+    if(mod.length) lines.push('\nChanges not staged for commit:\n'+mod.map(([n])=>`\tmodified:   ${n}`).join('\n'));
+    if(untr.length) lines.push('\nUntracked files:\n'+untr.map(([n])=>`\t${n}`).join('\n'));
+    if(!staged.length&&!mod.length&&!untr.length) lines.push(h?'\nnothing to commit, working tree clean':'\nnothing to commit (create/copy files and use "git add" to track)');
+    return {out:lines.join('\n')};
+  },
+  add(s,a){
+    if(!a.length) return {err:'Nothing specified, nothing added.\nhint: Maybe you wanted to say \'git add .\'?'};
+    const all=a.some(x=>x==='.'||x==='-A'||x==='--all');
+    const names=all?Object.keys(s.files):a;
+    for(const n of names){const f=s.files[n]; if(!f) return {err:`fatal: pathspec '${n}' did not match any files`}; f.idx=f.wd;}
+    return {out:''};
+  },
+  restore(s,a){
+    const staged=a.includes('--staged')||a.includes('-S'); const names=a.filter(x=>!x.startsWith('-'));
+    if(!names.length) return {err:'fatal: you must specify path(s) to restore'};
+    for(const n of names){const f=s.files[n]; if(!f) return {err:`error: pathspec '${n}' did not match any file(s) known to git`};
+      if(staged) f.idx=f.head; else { if(f.idx===null&&f.head===null) return {err:`error: pathspec '${n}' did not match any file(s) known to git`}; f.wd=f.idx!==null?f.idx:f.head; }}
+    return {out:''};
+  },
+  commit(s,a){
+    let msg=null; let all=false;
+    for(let i=0;i<a.length;i++){const x=a[i];
+      if(x==='-m'||x==='--message'){msg=a[++i];}
+      else if(x==='-am'||x==='-a'&&a[i+1]==='-m'){all=true; if(x==='-am') msg=a[++i];}
+      else if(x==='-a'||x==='--all') all=true;}
+    if(all) for(const f of Object.values(s.files)) if(f.head!==null||f.idx!==null) f.idx=f.wd;
+    let staged=stagedFiles(s); let note='';
+    if(!staged.length && s.mode==='sandbox' && !s.flags.noted && (s.flags.noted=true)) note='\n(symulator: brak zmian w poczekalni, więc dla wygody udajemy jedną zmienioną linijkę)';
+    if(a.includes('--amend')){
+      const h=headId(s); if(!h) return {err:'fatal: You have nothing to amend.'};
+      const c=s.commits[h]; const m2=msg||c.msg; for(const n of staged){s.files[n].head=s.files[n].idx;}
+      const id=mk(s,c.parents,m2,c.lane,me(s)); s.local.has[id]=1; s.local.orig=h; setHead(s,id,'commit (amend): '+m2);
+      return {out:`[${s.local.head.b||'detached HEAD'} ${id}] ${m2}\n (poprzednia wersja commita ${h} nie należy już do gałęzi)`};
+    }
+    if(!msg) msg='Zmiana nr '+(s.n+1);
+    for(const n of staged){s.files[n].head=s.files[n].idx;}
+    const p=headId(s); const id=mk(s,[p],msg,curLane(s),me(s)); s.local.has[id]=1;
+    setHead(s,id,(p?'commit: ':'commit (initial): ')+msg);
+    const where=s.local.head.b||'detached HEAD';
+    return {out:`[${where} ${p?'':'(root-commit) '}${id}] ${msg}\n ${Math.max(1,staged.length)} file${staged.length>1?'s':''} changed`+note};
+  },
+  log(s,a){
+    const all=a.includes('--all'); const roots=all?[headId(s),...Object.values(s.local.branches),...Object.values(s.local.tracking)]:[headId(s)];
+    if(!headId(s)) return {err:`fatal: your current branch '${s.local.head.b}' does not have any commits yet`};
+    const set=new Set(); roots.forEach(r=>anc(s,r).forEach(x=>set.add(x)));
+    const ids=[...set].sort((x,y)=>s.commits[y].idx-s.commits[x].idx);
+    return {out:ids.map(id=>`${id} ${decorate(s,id)}${s.commits[id].msg}`).join('\n')};
+  },
+  branch(s,a){
+    const L=s.local;
+    const del=a.find(x=>x==='-d'||x==='-D'||x==='--delete');
+    const names=a.filter(x=>!x.startsWith('-'));
+    if(!names.length){
+      const loc=Object.keys(L.branches).sort().map(b=>(b===L.head.b?'* ':'  ')+b);
+      if(!L.head.b) loc.unshift(`* (HEAD detached at ${headId(s)})`);
+      if(a.includes('-a')||a.includes('--all')) loc.push(...Object.keys(L.tracking).sort().map(b=>'  remotes/'+b));
+      return {out:loc.join('\n')};
+    }
+    const n=names[0];
+    if(del){
+      if(!L.branches[n]) return {err:`error: branch '${n}' not found.`};
+      if(n===L.head.b) return {err:`error: Cannot delete branch '${n}' checked out at '/home/ty/${s.project}'`};
+      if(del==='-d' && !anc(s,headId(s)).has(L.branches[n])) return {err:`error: The branch '${n}' is not fully merged.\nIf you are sure you want to delete it, run 'git branch -D ${n}'.`+((s.prs||[]).some(p=>p.head===n&&p.status==='merged')?`\n(PR z tej gałęzi scalono przez --squash, więc jej commity nie trafiły do main w tej postaci. Skoro zmiany są już w main, możesz bezpiecznie użyć -D.)`:'')};
+      const was=L.branches[n]; delete L.branches[n]; delete L.upstream[n];
+      return {out:`Deleted branch ${n} (was ${was}).`};
+    }
+    if(L.branches[n]) return {err:`fatal: a branch named '${n}' already exists`};
+    if(!/^[\w.\-/]+$/.test(n)) return {err:`fatal: '${n}' is not a valid branch name`};
+    const start=names[1]?resolve(s,names[1]):headId(s);
+    if(!start) return {err:`fatal: not a valid object name: '${names[1]||L.head.b}'`};
+    laneOf(s,n); L.branches[n]=start; return {out:''};
+  },
+  switch(s,a){return doSwitch(s,a,false);},
+  checkout(s,a){return doSwitch(s,a,true);},
+  merge(s,a){
+    if(a.includes('--abort')) return {err:'fatal: There is no merge to abort (MERGE_HEAD missing).'};
+    const name=a.find(x=>!x.startsWith('-')); if(!name) return {err:'fatal: No remote for the current branch.'};
+    return doMerge(s,name,`Merge branch '${name}'`+(s.local.head.b&&s.local.head.b!=='main'?` into ${s.local.head.b}`:''), a.includes('--no-ff'));
+  },
+  rebase(s,a){
+    const L=s.local; const name=a.find(x=>!x.startsWith('-'));
+    if(!L.head.b) return {err:'fatal: symulator obsługuje rebase tylko na gałęzi (nie w detached HEAD).'};
+    const t=resolve(s,name); if(!t) return {err:`fatal: invalid upstream '${name||''}'`};
+    const cur=headId(s); const base=anc(s,t);
+    if(base.has(cur)){ if(cur===t) return {out:`Current branch ${L.head.b} is up to date.`};
+      setHead(s,t,`rebase (finish): returning to refs/heads/${L.head.b}`); s.flags.rebased=true; return {out:`Successfully rebased and updated refs/heads/${L.head.b}.`}; }
+    const replay=[...anc(s,cur)].filter(x=>!base.has(x)&&s.commits[x].parents.length<2).sort((x,y)=>s.commits[x].idx-s.commits[y].idx);
+    if(anc(s,cur).has(t)) return {out:`Current branch ${L.head.b} is up to date.`};
+    let p=t; const lane=laneOf(s,L.head.b);
+    for(const c of replay){const id=mk(s,[p],s.commits[c].msg,lane,s.commits[c].author); L.has[id]=1; p=id;}
+    L.orig=cur; setHead(s,p,`rebase (finish): returning to refs/heads/${L.head.b}`); s.flags.rebased=true;
+    return {out:`Successfully rebased and updated refs/heads/${L.head.b}.`};
+  },
+  'cherry-pick'(s,a){
+    const t=resolve(s,a[0]); if(!t) return {err:`fatal: bad revision '${a[0]||''}'`};
+    const c=s.commits[t]; if(c.parents.length>1) return {err:`error: commit ${t} is a merge but no -m option was given.`};
+    if(anc(s,headId(s)).has(t)) return {err:`The previous cherry-pick is now empty, possibly due to conflict resolution.\n(commit ${t} jest już w historii bieżącej gałęzi)`};
+    const id=mk(s,[headId(s)],c.msg,curLane(s),c.author); s.local.has[id]=1; setHead(s,id,'cherry-pick: '+c.msg);
+    return {out:`[${s.local.head.b||'detached HEAD'} ${id}] ${c.msg}\n 1 file changed`};
+  },
+  reset(s,a){
+    const mode=a.includes('--hard')?'hard':a.includes('--soft')?'soft':'mixed';
+    const ref=a.find(x=>!x.startsWith('-'))||'HEAD'; const t=resolve(s,ref);
+    if(!t && s.files[ref]){ const f=s.files[ref]; f.idx=f.head; return {out:`Unstaged changes after reset:\nM\t${ref}`}; }
+    if(!t) return {err:`fatal: ambiguous argument '${ref}': unknown revision or path not in the working tree.`};
+    s.local.orig=headId(s); setHead(s,t,`reset: moving to ${ref}`);
+    const sn=s.commits[t].snap; if(sn) for(const [n,f] of Object.entries(s.files)){ f.head=(n in sn)?sn[n]:null; }
+    for(const f of Object.values(s.files)){ if(mode!=='soft') f.idx=f.head; if(mode==='hard') f.wd=f.head; }
+    for(const [n,f] of Object.entries(s.files)) if(f.head===null&&f.idx===null&&f.wd===null) delete s.files[n];
+    if(mode==='hard') return {out:`HEAD is now at ${t} ${msgOf(s,t)}`};
+    return {out:''};
+  },
+  revert(s,a){
+    const ref=a.find(x=>!x.startsWith('-')); const t=resolve(s,ref); if(!t) return {err:`fatal: bad revision '${ref||''}'`};
+    const c=s.commits[t]; if(c.parents.length>1) return {err:`error: commit ${t} is a merge but no -m option was given.`};
+    const msg=`Revert "${c.msg}"`; const id=mk(s,[headId(s)],msg,curLane(s),me(s)); s.local.has[id]=1; setHead(s,id,'revert: '+msg); s.flags.reverted=true;
+    return {out:`[${s.local.head.b||'detached HEAD'} ${id}] ${msg}\n 1 file changed`};
+  },
+  reflog(s){
+    const r=s.local.reflog.slice().reverse().slice(0,12);
+    return {out:r.map((e,i)=>`${e.id} HEAD@{${i}}: ${e.action}`).join('\n')};
+  },
+  remote(s,a){
+    if(a[0]==='add'){ if(s.remote) return {err:'error: remote origin already exists.'}; s.remote={has:{},branches:{}}; return {out:''}; }
+    if(a[0]==='prune'){ return {out:doFetch(s,true,true)}; }
+    if(a[0]==='-v') return {out:s.remote?`origin\tgithub.com:zespol/${s.project}.git (fetch)\norigin\tgithub.com:zespol/${s.project}.git (push)`:''};
+    return {out:s.remote?'origin':''};
+  },
+  clone(s,a){
+    const R=s.remote; if(!R) return {err:'fatal: repository not found'};
+    if(s.local.cloned) return {err:`fatal: destination path '${s.project}' already exists and is not an empty directory.`};
+    const L=s.local; Object.assign(L.has,R.has); L.branches={main:R.branches.main}; L.head={b:'main'};
+    for(const [b,v] of Object.entries(R.branches)) L.tracking['origin/'+b]=v; L.upstream.main=true; L.cloned=true;
+    L.reflog.push({id:R.branches.main,action:'clone: from github.com:zespol/'+s.project+'.git'});
+    return {out:`Cloning into '${s.project}'...\nremote: Enumerating objects: ${Object.keys(R.has).length*3}, done.\nReceiving objects: 100%, done.`};
+  },
+  push(s,a){
+    const L=s.local; const setU=a.includes('-u')||a.includes('--set-upstream'); const pos=a.filter(x=>!x.startsWith('-'));
+    const force=a.includes('--force')||a.includes('-f')||a.includes('--force-with-lease');
+    if(!s.remote) return {err:"fatal: No configured push destination.\nDodaj zdalne repo: git remote add origin https://github.com/ty/projekt.git"};
+    const delName=(a.includes('--delete')||a.includes('-d'))?pos[1]:(pos[1]&&pos[1].startsWith(':')?pos[1].slice(1):null);
+    if(delName){ if(!s.remote.branches[delName]) return {err:`error: unable to delete '${delName}': remote ref does not exist\nerror: failed to push some refs`};
+      delete s.remote.branches[delName]; delete L.tracking['origin/'+delName]; return {out:`To github.com:zespol/${s.project}.git\n - [deleted]         ${delName}`}; }
+    const b=pos[1]||L.head.b; if(!b) return {err:'fatal: You are not currently on a branch.'};
+    if(!L.branches[b]) return {err:`error: src refspec ${b} does not match any`};
+    if(!pos.length && !L.upstream[b]) return {err:`fatal: The current branch ${b} has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin ${b}`};
+    const R=s.remote, lid=L.branches[b], rb=R.branches[b];
+    if(rb && !anc(s,lid).has(rb) && !force){
+      if(L.has[rb]) return {err:`To github.com:zespol/${s.project}.git\n ! [rejected]        ${b} -> ${b} (non-fast-forward)\nerror: failed to push some refs\nhint: Updates were rejected because the tip of your current branch is behind\nhint: its remote counterpart. Use 'git pull' before pushing again.\n(Jeśli historia została celowo przepisana, np. rebase'em, użyj git push --force-with-lease.)`};
+      return {err:`To github.com:zespol/${s.project}.git\n ! [rejected]        ${b} -> ${b} (fetch first)\nerror: failed to push some refs\nhint: Updates were rejected because the remote contains work that you do not\nhint: have locally. Use 'git pull' before pushing again.`}; }
+    const forced=rb && !anc(s,lid).has(rb);
+    if(setU) L.upstream[b]=true;
+    if(rb===lid) return {out:'Everything up-to-date'};
+    anc(s,lid).forEach(x=>R.has[x]=1); R.branches[b]=lid; L.tracking['origin/'+b]=lid; laneOf(s,b);
+    if(b!=='main') s.flags.pushedBranch=true;
+    return {out:`To github.com:zespol/${s.project}.git\n ${forced?'+ '+rb+'...'+lid:rb?'  '+rb+'..'+lid:' * [new branch]     '}  ${b} -> ${b}${forced?' (forced update)':''}`+(setU?`\nbranch '${b}' set up to track 'origin/${b}'.`:'')};
+  },
+  fetch(s,a){
+    if(!s.remote) return {err:"fatal: 'origin' does not appear to be a git repository"};
+    return {out:doFetch(s,a.includes('--prune')||a.includes('-p'))};
+  },
+  pull(s,a){
+    const L=s.local; const b=L.head.b;
+    if(!s.remote) return {err:'fatal: No remote repository specified.'};
+    if(!b||!L.upstream[b]) return {err:`There is no tracking information for the current branch.\nPlease specify which branch you want to merge with.\n\n    git branch --set-upstream-to=origin/${b||'main'} ${b||''}`};
+    if(!s.remote.branches[b]) return {err:`Your configuration specifies to merge with the ref 'refs/heads/${b}'\nfrom the remote, but no such ref was fetched.\n(Gałęzi ${b} nie ma już na GitHubie. Przełącz się na main: git switch main)`};
+    const f=doFetch(s); const t=L.tracking['origin/'+b];
+    if(!t) return {err:`fatal: couldn't find remote ref ${b}`};
+    const cur=headId(s), diverged=!anc(s,t).has(cur)&&!anc(s,cur).has(t);
+    if(a.includes('--ff-only')&&diverged) return {err:walkOut([f||null,'fatal: Not possible to fast-forward, aborting.'])};
+    const cfg=(s.config||{})['pull.rebase'];
+    if(a.includes('--rebase')||a.includes('-r')||(cfg==='true'&&!a.includes('--no-rebase'))){ const rb=GIT.rebase(s,['origin/'+b]); if(rb.err) return rb; return {out:walkOut([f||null,rb.out])}; }
+    const m=doMerge(s,'origin/'+b,`Merge branch '${b}' of github.com:zespol/${s.project}`);
+    if(m.err) return m;
+    const hint=(diverged&&cfg===undefined&&!a.includes('--no-rebase'))?'(Uwaga: nowsze wersje Gita przy rozjechanych historiach najpierw pytają o strategię.\nUstawisz ją raz: git config pull.rebase false (merge) albo true (rebase). Symulator domyślnie robi merge.)':null;
+    return {out:walkOut([f||null,m.out,hint])};
+  },
+  diff(){return {out:'(Symulator nie pokazuje treści plików. Zmiany widać na panelu z trzema miejscami.)'};},
+  '--version'(){return {out:'git version 2.47.1 (symulator)'};},
+  help(){return {out:'Wpisz „pomoc”, żeby zobaczyć listę obsługiwanych poleceń.'};},
+};
+function doSwitch(s,a,isCheckout){
+  const L=s.local;
+  if(a.includes('-')){ if(!L.prev) return {err:"error: no previous branch (fatal: invalid reference: @{-1})"}; a=a.map(x=>x==='-'?L.prev:x); }
+  const beforeB=L.head.b, beforeId=headId(s);
+  const r=doSwitch0(s,a,isCheckout);
+  if(r.err) return r;
+  if(beforeB!==L.head.b || headId(s)!==beforeId) L.prev=beforeB||beforeId;
+  if(!beforeB && beforeId && headId(s)!==beforeId){
+    const reach=new Set(); Object.values(L.branches).forEach(x=>anc(s,x).forEach(y=>reach.add(y)));
+    const lost=[...anc(s,beforeId)].filter(x=>!reach.has(x)).length;
+    if(lost) r.out=`Warning: you are leaving ${lost} commit${lost>1?'s':''} behind, not connected to\nany of your branches:\n\n  ${beforeId} ${msgOf(s,beforeId)}\n\nIf you want to keep it by creating a new branch, this may be a good time\nto do so with:\n\n git branch <new-branch-name> ${beforeId}\n\n`+r.out;
+  }
+  return r;
+}
+function doSwitch0(s,a,isCheckout){
+  const L=s.local; const create=a.find(x=>x==='-c'||x==='-b'||x==='-C'||x==='-B'); const detach=a.includes('--detach');
+  const pos=a.filter(x=>!x.startsWith('-')); const name=pos[0];
+  if(!name) return {err:'fatal: missing branch or commit argument'};
+  if(isCheckout && a.includes('--')){return GIT.restore(s,pos);}
+  if(create){ const r=GIT.branch(s,pos); if(r.err) return r; const from=L.head.b||headId(s); L.head={b:name}; L.reflog.push({id:headId(s),action:`checkout: moving from ${from} to ${name}`}); return {out:`Switched to a new branch '${name}'`}; }
+  if(isCheckout && s.files[name] && !L.branches[name]) return GIT.restore(s,[name]);
+  const from=L.head.b||headId(s);
+  if(L.branches[name] && !detach){
+    if(L.head.b===name) return {out:`Already on '${name}'`};
+    L.head={b:name}; L.reflog.push({id:L.branches[name],action:`checkout: moving from ${from} to ${name}`});
+    let extra='';
+    const tr=L.tracking['origin/'+name]; if(tr&&L.upstream[name]){ if(tr===L.branches[name]) extra=`\nYour branch is up to date with 'origin/${name}'.`; }
+    return {out:`Switched to branch '${name}'`+extra};
+  }
+  if(!L.branches[name] && L.tracking['origin/'+name] && !detach){
+    laneOf(s,name); L.branches[name]=L.tracking['origin/'+name]; L.upstream[name]=true; L.head={b:name};
+    L.reflog.push({id:L.branches[name],action:`checkout: moving from ${from} to ${name}`});
+    return {out:`branch '${name}' set up to track 'origin/${name}'.\nSwitched to a new branch '${name}'`};
+  }
+  const id=resolve(s,name);
+  if(!id) return {err:isCheckout?`error: pathspec '${name}' did not match any file(s) known to git`:`fatal: invalid reference: ${name}`};
+  if(!isCheckout && !detach) return {err:`fatal: a branch is expected, got commit '${name}'\nhint: If you want to detach HEAD at the commit, try again with the --detach option.`};
+  L.head={id}; L.reflog.push({id,action:`checkout: moving from ${from} to ${name}`});
+  return {out:`Note: switching to '${name}'.\n\nYou are in 'detached HEAD' state. You can look around, make experimental\nchanges and commit them, and you can discard any commits you make in this\nstate without impacting any branches by switching back to a branch.\n\nHEAD is now at ${id} ${msgOf(s,id)}`};
+}
+function doMerge(s,name,mergeMsg,noff){
+  const cur=headId(s); const t=resolve(s,name);
+  if(!t) return {err:`merge: ${name} - not something we can merge`};
+  if(anc(s,cur).has(t)) return {out:'Already up to date.'};
+  if(anc(s,t).has(cur) && !noff){ setHead(s,t,`merge ${name}: Fast-forward`); return {out:`Updating ${cur}..${t}\nFast-forward`}; }
+  const id=mk(s,[cur,t],mergeMsg,curLane(s),me(s)); s.local.has[id]=1; setHead(s,id,`merge ${name}: Merge made by the 'ort' strategy.`); s.flags.merged=true;
+  return {out:"Merge made by the 'ort' strategy."};
+}
+function doFetch(s,prune,onlyPrune){
+  const L=s.local,R=s.remote; const lines=[];
+  if(prune) for(const k of Object.keys(L.tracking)) if(!R.branches[k.slice(7)]){ delete L.tracking[k]; lines.push(` - [deleted]         (none)     -> ${k}`); }
+  if(onlyPrune) return lines.length?`Pruning origin\n`+lines.join('\n'):'';
+  Object.assign(L.has,R.has);
+  for(const [b,v] of Object.entries(R.branches)){const k='origin/'+b, old=L.tracking[k]; if(old!==v){lines.push(old?`   ${old}..${v}  ${b.padEnd(10)} -> ${k}`:` * [new branch]      ${b.padEnd(10)} -> ${k}`); L.tracking[k]=v;}}
+  return lines.length?`From github.com:zespol/${s.project}\n`+lines.join('\n'):'';
+}
+
+
+/* ---------- GitHub CLI: pull requesty ---------- */
+function plC(n){return n===1?'1 commit':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?n+' commity':n+' commitów';}
+function prCommits(s,p){ const R=s.remote; if(p.status!=='open') return p.count||0; const h=R.branches[p.head]; if(!h) return 0; const M=anc(s,R.branches[p.base]); return [...anc(s,h)].filter(x=>!M.has(x)).length; }
+function prVerdict(p){ const last={}; p.reviews.forEach(r=>{ if(r.state!=='COMMENTED') last[r.by]=r.state; }); const st=Object.values(last); return {approved:st.includes('APPROVED'), blocked:st.includes('CHANGES_REQUESTED')}; }
+function optVal(a,names){ for(let i=0;i<a.length;i++) if(names.includes(a[i])) return a[i+1]; return null; }
+function gh(s,t){
+  const E=o=>({kind:'err',out:o}), O=o=>({out:o});
+  if(t[0]!=='pr') return E('Symulator obsługuje tylko gh pr: create, list, view, checkout, review, merge, close.');
+  if(!s.local.cloned) return E('fatal: not a git repository (najpierw git clone)');
+  if(!s.remote) return E('none of the git remotes configured for this repository point to a known GitHub host');
+  s.prs=s.prs||[];
+  const sub=t[1], a=t.slice(2), who=s.me||'ty', R=s.remote, url=`https://github.com/zespol/${s.project}/pull/`;
+  if(sub==='create'){
+    const head=optVal(a,['--head','-H'])||s.local.head.b; const base=optVal(a,['--base','-B'])||'main';
+    if(!head) return E('could not determine the current branch');
+    if(head===base) return E(`must be on a branch named differently than "${base}"\n(wskazówka: git switch -c nowa-funkcja)`);
+    if(!R.branches[head]) return E(`aborted: you must first push the current branch to a remote, or use the --head flag\n(wskazówka: git push -u origin ${head})`);
+    const ex=s.prs.find(p=>p.head===head&&p.status==='open'); if(ex) return E(`a pull request for branch "${head}" into branch "${base}" already exists:\n${url}${ex.nr}`);
+    const title=optVal(a,['--title','-t'])||msgOf(s,R.branches[head]); const body=optVal(a,['--body','-b'])||'';
+    const nr=s.prN++; s.prs.push({nr,title,body,head,base,author:who,status:'open',reviews:[]});
+    return O(`Creating pull request for ${head} into ${base} in zespol/${s.project}\n\n${url}${nr}`);
+  }
+  if(sub==='list'){ const open=s.prs.filter(p=>p.status==='open'); if(!open.length) return O(`no open pull requests in zespol/${s.project}`);
+    return O(`Showing ${open.length} of ${open.length} open pull request${open.length>1?'s':''} in zespol/${s.project}\n\n`+open.map(p=>`#${p.nr}  ${p.title.padEnd(22)} ${p.head.padEnd(14)} OPEN`).join('\n')); }
+  const nArg=a.find(x=>/^#?\d+$/.test(x));
+  const p=nArg?s.prs.find(q=>q.nr===+nArg.replace('#','')):s.prs.find(q=>q.head===s.local.head.b&&q.status==='open');
+  if(!p) return E(nArg?`GraphQL: Could not resolve to a PullRequest with the number of ${nArg.replace('#','')}.`:`no pull requests found for branch "${s.local.head.b}"\n(podaj numer, np. gh pr ${sub||'view'} 1)`);
+  if(sub==='view'){ const v=prVerdict(p), c=prCommits(s,p);
+    const lines=[`${p.title} #${p.nr}`,`${p.status==='open'?'Open':p.status==='merged'?'Merged':'Closed'} • ${WHO[p.author]} wants to merge ${c} commit${c===1?'':'s'} into ${p.base} from ${p.head}`];
+    if(p.reviews.length) lines.push('Reviews: '+p.reviews.map(r=>`${WHO[r.by]} (${r.state==='APPROVED'?'Approved':r.state==='CHANGES_REQUESTED'?'Changes requested':'Commented'})`).join(', '));
+    if(p.body) lines.push('\n  '+p.body);
+    if(p.status==='open') lines.push('\n'+(v.approved&&!v.blocked?'✓ Można scalać':'✗ Zablokowany: main wymaga zatwierdzenia od kogoś innego niż autor'));
+    lines.push(`\nView this pull request on GitHub: ${url}${p.nr}`); return O(lines.join('\n')); }
+  if(sub==='checkout'){
+    if(!R.branches[p.head]) return E(`could not find branch ${p.head} on remote (gałąź została już usunięta)`);
+    const L=s.local; const f=doFetch(s); const tr=L.tracking['origin/'+p.head]; let out=f?f+'\n':'';
+    if(L.branches[p.head]){ const sw=doSwitch(s,[p.head],false); out+=sw.out||''; const cur=L.branches[p.head];
+      if(cur!==tr&&anc(s,tr).has(cur)){ setHead(s,tr,'pull: Fast-forward'); out+=`\nUpdating ${cur}..${tr}\nFast-forward`; } }
+    else { laneOf(s,p.head); L.branches[p.head]=tr; L.upstream[p.head]=true; const from=L.head.b||headId(s); L.head={b:p.head};
+      L.reflog.push({id:tr,action:`checkout: moving from ${from} to ${p.head}`}); out+=`branch '${p.head}' set up to track 'origin/${p.head}'.\nSwitched to a new branch '${p.head}'`; }
+    if(who!==p.author) s.flags.reviewerCheckout=true;
+    return O(out);
+  }
+  if(sub==='review'){
+    if(p.status!=='open') return E(`Pull request #${p.nr} is already ${p.status==='merged'?'merged':'closed'}`);
+    const state=(a.includes('--approve')||a.includes('-a'))?'APPROVED':(a.includes('--request-changes')||a.includes('-r'))?'CHANGES_REQUESTED':(a.includes('--comment')||a.includes('-c'))?'COMMENTED':null;
+    if(!state) return E('did not understand desired review action: use --approve, --request-changes or --comment');
+    if(p.author===who&&state!=='COMMENTED') return E(`failed to create review: ${state==='APPROVED'?'Can not approve your own pull request':'Can not request changes on your own pull request'}`);
+    const body=optVal(a,['--body','-b'])||''; if(state!=='APPROVED'&&!body) return E('body cannot be blank for request-changes and comment review (dodaj -b "treść")');
+    p.reviews.push({by:who,state,body});
+    return O(state==='APPROVED'?`✓ Approved pull request #${p.nr}`:state==='CHANGES_REQUESTED'?`- Requested changes to pull request #${p.nr}`:`- Reviewed pull request #${p.nr}`);
+  }
+  if(sub==='merge'){
+    if(p.status!=='open') return E(`Pull request #${p.nr} was already ${p.status}`);
+    const v=prVerdict(p); if(!v.approved||v.blocked) return E(`X Pull request #${p.nr} is not mergeable: the base branch policy prohibits the merge.\n(ochrona gałęzi main: potrzebne zatwierdzenie od kogoś innego niż autor i żadnej otwartej prośby o zmiany)`);
+    if(a.includes('--rebase')) return E('Symulator obsługuje gh pr merge --merge i --squash.');
+    if(!R.branches[p.head]) return E(`gałąź ${p.head} nie istnieje już na GitHubie`);
+    const squash=a.includes('--squash')||a.includes('-s'); const rm=R.branches[p.base], rh=R.branches[p.head];
+    p.count=prCommits(s,p);
+    const id=squash?mk(s,[rm],`${p.title} (#${p.nr})`,laneOf(s,p.base),WHO[p.author]):mk(s,[rm,rh],`Merge pull request #${p.nr} from zespol/${p.head}`,laneOf(s,p.base),me(s));
+    R.has[id]=1; R.branches[p.base]=id; p.status='merged'; p.mergeId=id; p.by=who;
+    let out=`✓ ${squash?'Squashed and merged':'Merged'} pull request #${p.nr} (${p.title})`;
+    if(a.includes('--delete-branch')||a.includes('-d')){
+      const L=s.local;
+      if(L.branches[p.head]){
+        if(L.head.b===p.head){ L.head={b:p.base}; L.reflog.push({id:L.branches[p.base],action:`checkout: moving from ${p.head} to ${p.base}`}); }
+        doFetch(s); const tb=L.tracking['origin/'+p.base]; if(L.head.b===p.base&&tb&&anc(s,tb).has(headId(s))) setHead(s,tb,'pull: Fast-forward');
+        delete L.branches[p.head]; delete L.upstream[p.head]; out+=`\n✓ Deleted local branch ${p.head} and switched to branch ${p.base}`; }
+      delete R.branches[p.head]; delete L.tracking['origin/'+p.head]; out+=`\n✓ Deleted remote branch ${p.head}`;
+    }
+    return O(out);
+  }
+  if(sub==='close'){ if(p.status!=='open') return E(`Pull request #${p.nr} is already ${p.status}`); p.status='closed'; return O(`✓ Closed pull request #${p.nr} (${p.title})`); }
+  return E(`unknown command "${sub}" for "gh pr"`);
+}
+
+/* ============================== UKŁAD GRAFU ============================== */
+const GAPX=96, PADX=58;
+function layout(s,which){
+  const repo=which==='remote'?s.remote:s.local;
+  if(!repo) return null;
+  const ids=Object.keys(repo.has).sort((a,b)=>s.commits[a].idx-s.commits[b].idx);
+  let reach=null;
+  reach=new Set(); if(which!=='local') Object.values(repo.branches).forEach(r=>anc(s,r).forEach(x=>reach.add(x))); if(which==='local'){[...Object.values(repo.branches),...Object.values(repo.tracking),headId(s)].filter(Boolean).forEach(r=>anc(s,r).forEach(x=>reach.add(x)));}
+  const lab={}; const push=(id,key,text,cls,lane)=>{if(!id)return;(lab[id]=lab[id]||[]).push({key,text,cls,lane});};
+  const ln=n=>s.lanes[n]??0;
+  if(which==='local'){
+    const cur=repo.head.b;
+    for(const [k,v] of Object.entries(repo.tracking)) push(v,'t:'+k,k,'trk',ln(k.slice(7)));
+    for(const [k,v] of Object.entries(repo.branches)) if(k!==cur) push(v,'b:'+k,k,'br',ln(k));
+    if(cur&&repo.branches[cur]) push(repo.branches[cur],'b:'+cur,cur,'br cur',ln(cur));
+    const h=headId(s); if(h) push(h,'HEAD','HEAD','head',0);
+  } else for(const [k,v] of Object.entries(repo.branches)) push(v,'r:'+k,k,'br',ln(k));
+  const lanes=[...new Set(ids.map(i=>s.commits[i].lane))].sort((a,b)=>a-b);
+  const row={}; lanes.forEach((l,i)=>row[l]=i);
+  const top=lanes.map(()=>0);
+  ids.forEach(id=>{const r=row[s.commits[id].lane]; top[r]=Math.max(top[r],(lab[id]||[]).length);});
+  const rowY=[]; let y=10;
+  lanes.forEach((l,r)=>{y+=top[r]*20+(top[r]?8:4); rowY[r]=y+12; y+=12+50;});
+  const H=Math.max(y,120);
+  const nodes={}, labels={}, edges={};
+  const hid=which==='local'?headId(s):null;
+  ids.forEach((id,i)=>{const c=s.commits[id]; const x=PADX+i*GAPX, yy=rowY[row[c.lane]];
+    nodes[id]={x,y:yy,o:1,lane:c.lane%6,ghost:reach?!reach.has(id):false,merge:c.parents.length>1,msg:c.msg,author:c.author,head:id===hid,p0:c.parents[0]};
+    (lab[id]||[]).forEach((L,k)=>{labels[L.key]={x,y:yy-23-k*20,o:1,text:L.text,cls:L.cls,lane:L.lane%6,w:L.text.length*7+14,at:id,k};});
+    c.parents.forEach((p,pi)=>{if(repo.has[p]){const pc=s.commits[p]; const lane=(pc.lane===c.lane)?c.lane:(pi===0?c.lane:pc.lane); edges[id+'>'+p]={a:id,b:p,lane:lane%6,o:1};}});
+  });
+  const W=ids.length?PADX*2+(ids.length-1)*GAPX:300;
+  return {nodes,labels,edges,W,H,empty:!ids.length};
+}
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function trunc(s,n){return s.length>n?s.slice(0,n-1)+'…':s;}
+
+class GraphPanel{
+  constructor(body,which){this.body=body;this.which=which;this.shown=null;this.raf=0;}
+  update(s,{animate=true,emptyText=''}={}){
+    cancelAnimationFrame(this.raf);
+    let L;
+    if(this.which==='peer') L=(s.peer&&s.peer.cloned)?withUser(s,'ola',()=>layout(s,'local')):null;
+    else L=(this.which==='local'&&!s.local.cloned)?null:layout(s,this.which);
+    if(!L||L.empty){this.shown=null;this.body.innerHTML=`<div class="placeholder">${emptyText||(this.which==='remote'?'Brak zdalnego repozytorium.':'Brak commitów. Zrób pierwszy: <code>git commit</code>.')}</div>`;return;}
+    const from=this.shown||{nodes:{},labels:{},edges:{},W:L.W,H:L.H};
+    if(!this.body.querySelector('svg')) this.body.innerHTML='<svg xmlns="http://www.w3.org/2000/svg"></svg>';
+    const svg=this.body.querySelector('svg');
+    const dur=(animate&&!reduced&&this.shown)?560:0; const t0=performance.now();
+    const step=now=>{const t=dur?Math.min(1,(now-t0)/dur):1; const e=ease(t);
+      const fr=this.tween(from,L,e,t>=1); this.draw(svg,fr); this.shown=fr;
+      if(t<1) this.raf=requestAnimationFrame(step); else this.scrollToHead(L);};
+    if(dur) this.raf=requestAnimationFrame(step); else step(t0);
+  }
+  tween(A,B,t,final){
+    const N={},Lb={},E={};
+    for(const id of new Set([...Object.keys(A.nodes),...Object.keys(B.nodes)])){
+      const a=A.nodes[id], b=B.nodes[id];
+      if(a&&b) N[id]={...b,x:lerp(a.x,b.x,t),y:lerp(a.y,b.y,t),o:lerp(a.o,1,t)};
+      else if(b){const src=(b.p0&&A.nodes[b.p0])||b; N[id]={...b,x:lerp(src.x,b.x,t),y:lerp(src.y,b.y,t),o:t};}
+      else if(!final) N[id]={...a,o:a.o*(1-t)};
+    }
+    for(const k of new Set([...Object.keys(A.labels),...Object.keys(B.labels)])){
+      const a=A.labels[k], b=B.labels[k];
+      if(a&&b) Lb[k]={...b,x:lerp(a.x,b.x,t),y:lerp(a.y,b.y,t),o:lerp(a.o,1,t),w:lerp(a.w,b.w,t)};
+      else if(b){const n=N[b.at]; Lb[k]={...b,x:n?n.x:b.x,y:n?lerp(n.y-23-b.k*20+8,b.y,t):b.y,o:t};}
+      else if(!final){const n=N[a.at]; Lb[k]={...a,x:n?n.x:a.x,o:a.o*(1-t)};}
+    }
+    for(const k of new Set([...Object.keys(A.edges),...Object.keys(B.edges)])){
+      const a=A.edges[k], b=B.edges[k];
+      if(b) E[k]={...b,o:a?lerp(a.o,1,t):t}; else if(!final) E[k]={...a,o:a.o*(1-t)};
+    }
+    return {nodes:N,labels:Lb,edges:E,W:final?B.W:Math.max(A.W||0,B.W),H:final?B.H:Math.max(A.H||0,B.H)};
+  }
+  draw(svg,F){
+    let e='',n='',l='';
+    for(const E of Object.values(F.edges)){const c=F.nodes[E.a],p=F.nodes[E.b]; if(!c||!p) continue;
+      const o=Math.min(E.o,c.o,p.o); let d;
+      if(Math.abs(c.y-p.y)<.5) d=`M${p.x},${p.y}L${c.x},${c.y}`;
+      else {const mx=p.x+(c.x-p.x)*.55; d=`M${p.x},${p.y}C${mx},${p.y} ${mx},${c.y} ${c.x},${c.y}`;}
+      e+=`<path class="edge lane${E.lane}" d="${d}" opacity="${o.toFixed(3)}"${c.ghost?' stroke-dasharray="4 5"':''}/>`;}
+    for(const [id,N] of Object.entries(F.nodes)){
+      n+=`<g class="node lane${N.lane}${N.ghost?' ghost':''}${N.head?' head':''}" transform="translate(${N.x.toFixed(1)},${N.y.toFixed(1)})" opacity="${N.o.toFixed(3)}"><title>${id} · ${esc(N.msg)} · autor: ${esc(N.author)}${N.ghost?' (osierocony: nie należy do żadnej gałęzi)':''}</title><circle class="c" r="11"/>${N.merge?'<circle class="inner" r="4.5"/>':''}<text class="hash" y="28">${id}</text><text class="msg" y="42">${esc(trunc(N.msg,15))}</text></g>`;}
+    const stems={};
+    for(const L of Object.values(F.labels)){
+      const node=F.nodes[L.at];
+      if(node&&L.k===0&&!stems[L.at]){stems[L.at]=1; l+=`<line class="stem" x1="${node.x}" y1="${node.y-12}" x2="${L.x}" y2="${L.y+9}" opacity="${Math.min(L.o,node.o).toFixed(3)}"/>`;}
+      l+=`<g class="tag ${L.cls} lane${L.lane}" transform="translate(${L.x.toFixed(1)},${L.y.toFixed(1)})" opacity="${L.o.toFixed(3)}"><rect x="${(-L.w/2).toFixed(1)}" y="-9" width="${L.w.toFixed(1)}" height="18" rx="4"/><text y="4">${esc(L.text)}</text></g>`;}
+    svg.setAttribute('width',Math.ceil(F.W)); svg.setAttribute('height',Math.ceil(F.H)); svg.setAttribute('viewBox',`0 0 ${Math.ceil(F.W)} ${Math.ceil(F.H)}`);
+    svg.innerHTML=e+l+n;
+  }
+  scrollToHead(L){const b=this.body; if(b.scrollWidth<=b.clientWidth) return;
+    const h=Object.values(L.nodes).find(n=>n.head)||Object.values(L.nodes).sort((a,c)=>c.x-a.x)[0];
+    const svg=b.querySelector('svg'); const off=svg.getBoundingClientRect().left-b.getBoundingClientRect().left+b.scrollLeft;
+    const target=Math.max(0,off+h.x-b.clientWidth*0.6); b.scrollTo({left:target,behavior:reduced?'auto':'smooth'});}
+}
+
+/* ---------- Panel pull requestów ---------- */
+class PrPanel{
+  constructor(el){this.el=el;}
+  update(s){
+    const prs=s.prs||[];
+    if(!prs.length){ this.el.innerHTML=(s.mode==='sandbox'&&s.remote)?`<div class="prempty">Brak pull requestów. Wypchnij gałąź i wpisz <code>gh pr create</code>.</div>`:''; this.el.hidden=!this.el.innerHTML; return; }
+    this.el.hidden=false;
+    this.el.innerHTML=`<div class="prhead">Pull requesty <span>ochrona main: 1 zatwierdzenie</span></div>`+prs.slice().reverse().map(p=>{
+      const v=prVerdict(p);
+      const st=p.status==='open'?(v.blocked?['Prośba o zmiany','chg']:v.approved?['Zatwierdzony','ok']:['Czeka na przegląd','wait']):p.status==='merged'?['Scalony','mrg']:['Zamknięty','cls'];
+      const last={}; p.reviews.forEach(r=>last[r.by]=r);
+      return `<div class="prcard"><div class="prt"><b>#${p.nr}</b><span>${esc(p.title)}</span><span class="pill ${st[1]}">${st[0]}</span></div>
+        <div class="prm"><code>${esc(p.head)}</code> → <code>${esc(p.base)}</code> · autor: ${WHO[p.author]} · ${plC(prCommits(s,p))}${p.status==='merged'?` · scalone przez: ${WHO[p.by]}`:''}</div>
+        ${Object.values(last).map(r=>`<div class="prr ${r.state}">${WHO[r.by]}: ${r.state==='APPROVED'?'✓ zatwierdza':r.state==='CHANGES_REQUESTED'?'✗ prosi o zmiany':'komentuje'}${r.body?` „${esc(r.body)}”`:''}</div>`).join('')}</div>`;}).join('');
+  }
+}
+
+/* ---------- Panel trzech miejsc ---------- */
+class AreasPanel{
+  constructor(body){this.body=body;
+    body.innerHTML=`<div class="areas">
+      <div class="area"><h4>Katalog roboczy</h4><p>pliki, które widzisz w edytorze</p><div class="chipsbox" data-c="wd"></div></div>
+      <div class="area"><h4>Poczekalnia (staging)</h4><p>to, co wejdzie do następnego commita</p><div class="chipsbox" data-c="idx"></div></div>
+      <div class="area"><h4>Repozytorium</h4><p>wersje zapisane w ostatnim commicie</p><div class="chipsbox" data-c="head"></div></div></div>`;}
+  update(s,{animate=true}={}){
+    const prev={}; this.body.querySelectorAll('.fchip').forEach(el=>prev[el.dataset.k]={r:el.getBoundingClientRect(),v:el.dataset.v});
+    const F=Object.entries(s.files);
+    const box=c=>this.body.querySelector(`[data-c="${c}"]`);
+    const chip=(col,n,v,st,lab)=>`<div class="fchip ${st}" data-k="${col}:${n}" data-v="${v}"><span class="fn">${esc(n)}</span><span class="v">${lab?`<span class="st">${lab}</span> `:''}v${v}</span></div>`;
+    box('wd').innerHTML=F.filter(([n,f])=>f.wd!==null).map(([n,f])=>{const st=(f.head===null&&f.idx===null)?'untracked':(f.wd!==f.idx?'modified':'');return chip('wd',n,f.wd,st,st==='untracked'?'nowy':st==='modified'?'zmieniony':'');}).join('')||'<span class="empty-note">pusto</span>';
+    box('idx').innerHTML=F.filter(([n,f])=>f.idx!==null).map(([n,f])=>{const st=f.idx!==f.head?'staged':'';return chip('idx',n,f.idx,st,st?'gotowy':'');}).join('')||'<span class="empty-note">pusto</span>';
+    box('head').innerHTML=F.filter(([n,f])=>f.head!==null).map(([n,f])=>chip('head',n,f.head,'','')).join('')||'<span class="empty-note">brak commitów</span>';
+    if(!animate||reduced) return;
+    const srcCol={idx:'wd',head:'idx',wd:'idx'};
+    this.body.querySelectorAll('.fchip').forEach(el=>{
+      const k=el.dataset.k, [col,...rest]=k.split(':'), n=rest.join(':'); const now=el.getBoundingClientRect(); let from=null, pulse=false;
+      if(prev[k]&&prev[k].v===el.dataset.v) from=prev[k].r;
+      else { const sk=srcCol[col]+':'+n; if(prev[sk]&&(prev[sk].v===el.dataset.v||col==='wd')) from=prev[sk].r; else pulse=true; }
+      if(from&&(Math.abs(from.left-now.left)>1||Math.abs(from.top-now.top)>1)) el.animate([{transform:`translate(${from.left-now.left}px,${from.top-now.top}px)`},{transform:'none'}],{duration:520,easing:'cubic-bezier(.65,0,.35,1)'});
+      else if(pulse||(prev[k]&&prev[k].v!==el.dataset.v)) el.animate([{transform:'scale(.85)',opacity:0},{transform:'none',opacity:1}],{duration:360,easing:'ease-out'});
+    });
+  }
+}
+
+/* ============================== TREŚĆ KURSU ============================== */
+const CH=[
+ {id:'obszary', title:'Trzy miejsca na plik', short:'Katalog roboczy, poczekalnia i repozytorium. Skąd się biorą commity.', panels:['areas','local'],
+  lead:'Zanim zmiana trafi do historii, przechodzi przez trzy miejsca. Gdy je zrozumiesz, git status przestanie być zagadką.',
+  init:[], steps:[
+  {t:'Repozytorium to folder z pamięcią', c:['git init'], b:`<p>Polecenie <code>git init</code> zamienia zwykły folder w repozytorium. Git tworzy w nim ukryty katalog <code>.git</code>, w którym trzyma całą historię projektu.</p><p>Od teraz każdy plik może być w trzech miejscach: w <b>katalogu roboczym</b> (to, co widzisz w edytorze), w <b>poczekalni</b> (ang. staging area, zwanej też indeksem) i w <b>repozytorium</b>, czyli w zapisanej historii.</p>`},
+  {t:'Tworzysz pierwszy plik', c:['edit index.html','git status'], b:`<p>Plik istnieje tylko w katalogu roboczym. Git go widzi, ale jeszcze nie śledzi, dlatego <code>git status</code> wypisuje go jako <i>untracked</i>.</p><p>Na tym etapie Git niczego nie zapamiętał. Gdyby teraz zniknął, nie zostałby po nim żaden ślad.</p>`},
+  {t:'git add wkłada plik do poczekalni', c:['git add index.html','git status'], b:`<p><code>git add</code> kopiuje aktualną wersję pliku do poczekalni. Poczekalnia to szkic następnego commita: do historii trafi tylko to, co w niej leży.</p><p>Sekcja <i>Changes to be committed</i> oznacza, że plik czeka na zapis.</p>`},
+  {t:'git commit robi migawkę', c:['git commit -m "Pierwsza strona"'], b:`<p>Commit zapisuje zawartość poczekalni jako trwałą migawkę projektu. Na dole pojawiła się pierwsza kropka w historii.</p><p>Każdy commit ma unikalny identyfikator (hash), autora, datę, opis i wskazanie na commit-rodzica. Ten jest pierwszy, więc rodzica nie ma.</p>`},
+  {t:'Pracujesz dalej', c:['edit index.html','edit style.css','git status'], b:`<p>Zmieniasz <code>index.html</code> i tworzysz <code>style.css</code>. W katalogu roboczym jest teraz wersja v2 strony, a w repozytorium wciąż v1.</p><p>Git odróżnia plik <i>zmodyfikowany</i> (śledzony, ale inny niż w poczekalni) od <i>nieśledzonego</i> (zupełnie nowego).</p>`},
+  {t:'Sam wybierasz, co wejdzie do commita', c:['git add style.css','git commit -m "Dodaj style"'], b:`<p>Do poczekalni trafia tylko <code>style.css</code>, więc tylko on wchodzi do nowego commita. Zmiana w <code>index.html</code> zostaje w katalogu roboczym i czeka na swoją kolej.</p><p>Dzięki temu jedna sesja pracy może dać kilka małych, logicznych commitów zamiast jednego wielkiego.</p>`},
+  {t:'Domykasz resztę', c:['git add .','git commit -m "Nowy nagłówek"','git status'], b:`<p><code>git add .</code> dodaje wszystkie zmiany w bieżącym folderze. Po commicie we wszystkich trzech miejscach są te same wersje plików, a <code>git status</code> odpowiada <i>working tree clean</i>.</p>`,
+   quiz:{q:'Zmieniasz plik i od razu wpisujesz git commit, bez git add. Co trafi do commita?',o:['Nowa wersja pliku','Nic z tej zmiany, bo nie było jej w poczekalni','Git sam doda wszystkie zmienione pliki'],a:1,why:'Commit zapisuje zawartość poczekalni. Zmiany, które nie trafiły do poczekalni przez git add, zostają w katalogu roboczym. Wyjątkiem jest skrót git commit -a, który najpierw sam dodaje zmienione, śledzone pliki.'}}
+ ]},
+ {id:'historia', title:'Commity i historia', short:'Łańcuch migawek, hashe i wskaźnik HEAD.', panels:['local'],
+  lead:'Historia w Gicie to łańcuch migawek. Zobacz, jak commity łączą się ze sobą i czym jest tajemniczy HEAD.',
+  init:['git commit -m "Szkielet strony"'], steps:[
+  {t:'Jedna migawka', c:['git log --oneline'], b:`<p>Każda kropka to commit, czyli migawka całego projektu w danej chwili. Pod kropką widzisz skrót hasha i opis.</p><p><code>git log --oneline</code> wypisuje historię w skróconej formie, po jednym commicie na linię.</p>`},
+  {t:'Każdy commit zna swojego rodzica', c:['git commit -m "Menu"','git commit -m "Stopka"'], b:`<p>Nowy commit zawsze wskazuje na poprzedni, czyli na swojego rodzica. Tak powstaje łańcuch: od najnowszego commita da się dojść do samego początku.</p><p>Linie na diagramie łączą commit z rodzicem. Git zapisuje tylko wskazania wstecz, nigdy w przód.</p>`},
+  {t:'Hash to odcisk palca', c:['git log --oneline'], b:`<p>Hash to 40-znakowy identyfikator wyliczony z zawartości commita: plików, opisu, autora, daty i hasha rodzica. Zwykle wystarcza pierwszych 7 znaków.</p><p>Zmiana czegokolwiek w commicie daje zupełnie inny hash. Dlatego historii nie da się po cichu podmienić, a każda poprawka tworzy nowy commit.</p>`},
+  {t:'HEAD pokazuje, gdzie jesteś', c:['git status'], b:`<p><b>HEAD</b> to wskaźnik na miejsce, w którym teraz pracujesz. Zwykle wskazuje na gałąź (tutaj <code>main</code>), a gałąź wskazuje na commit.</p><p>Gdy zrobisz commit, gałąź przesunie się na nowy commit, a HEAD pojedzie razem z nią.</p>`},
+  {t:'Podróż w czasie', c:['git checkout HEAD~2'], b:`<p><code>HEAD~2</code> oznacza „dwa commity wstecz od HEAD”. Po <code>git checkout</code> pliki w katalogu roboczym wyglądają tak, jak wtedy.</p><p>HEAD wskazuje teraz bezpośrednio na commit, a nie na gałąź. To stan <b>detached HEAD</b>. Możesz się rozglądać, ale nowe commity nie będą należeć do żadnej gałęzi.</p>`},
+  {t:'Powrót do teraźniejszości', c:['git switch main'], b:`<p><code>git switch main</code> podpina HEAD z powrotem pod gałąź. Wracasz do najnowszego stanu i możesz normalnie pracować dalej.</p>`,
+   quiz:{q:'Na co wskazuje HEAD podczas zwykłej pracy?',o:['Na pierwszy commit w repozytorium','Na bieżącą gałąź, która z kolei wskazuje na commit','Na serwer GitHuba'],a:1,why:'HEAD zwykle wskazuje na gałąź. Wskazanie bezpośrednio na commit to wyjątkowy stan detached HEAD.'}}
+ ]},
+ {id:'galezie', title:'Gałęzie', short:'Dlaczego gałąź to tylko karteczka i jak pracować równolegle.', panels:['local'],
+  lead:'Gałąź brzmi poważnie, ale to tylko ruchoma karteczka przyklejona do commita. Dlatego tworzenie gałęzi w Gicie trwa ułamek sekundy.',
+  init:['git commit -m "Start"','git commit -m "Strona główna"'], steps:[
+  {t:'Gałąź to wskaźnik', c:['git branch'], b:`<p>Gałąź <code>main</code> to po prostu nazwa wskazująca na konkretny commit. W katalogu <code>.git</code> zajmuje jeden mały plik z hashem w środku.</p><p><code>git branch</code> wypisuje gałęzie, a gwiazdka oznacza bieżącą.</p>`},
+  {t:'Nowa gałąź', c:['git branch logowanie','git branch'], b:`<p><code>git branch logowanie</code> tworzy nową karteczkę w tym samym miejscu. Żaden plik nie jest kopiowany i nie powstaje żaden commit.</p><p>Zwróć uwagę, że HEAD wciąż jest przy <code>main</code>. Samo utworzenie gałęzi nie przełącza na nią.</p>`},
+  {t:'Przełączasz się', c:['git switch logowanie'], b:`<p><code>git switch</code> przepina HEAD na inną gałąź. Od teraz nowe commity będą przesuwać <code>logowanie</code>, a <code>main</code> zostanie w miejscu.</p><p>Starsze poradniki używają do tego <code>git checkout</code>. Działa tak samo, ale <code>switch</code> robi tylko jedną rzecz i trudniej się nim pomylić.</p>`},
+  {t:'Praca na gałęzi', c:['git commit -m "Formularz logowania"','git commit -m "Walidacja hasła"'], b:`<p>Dwa nowe commity przesuwają gałąź <code>logowanie</code> do przodu. <code>main</code> nadal wskazuje na stan sprzed rozpoczęcia pracy.</p><p>Możesz eksperymentować do woli, bo główna wersja projektu jest nietknięta.</p>`},
+  {t:'W tym czasie na main', c:['git switch main','git commit -m "Poprawka literówki"'], b:`<p>Wracasz na <code>main</code> i robisz szybką poprawkę. Historia się rozwidla: obie gałęzie mają wspólny początek, ale różne zakończenia.</p><p>W zespole to codzienność. W następnym rozdziale połączysz te linie z powrotem.</p>`},
+  {t:'Skrót: utwórz i przełącz', c:['git switch -c ciemny-motyw','git commit -m "Ciemny motyw"'], b:`<p><code>git switch -c nazwa</code> tworzy gałąź i od razu się na nią przełącza. To wariant, którego będziesz używać najczęściej.</p>`,
+   quiz:{q:'Jesteś na gałęzi logowanie i robisz commit. Co dzieje się z main?',o:['Przesuwa się razem z logowanie','Zostaje w miejscu','Zostaje usunięta'],a:1,why:'Commit przesuwa tylko gałąź, na którą wskazuje HEAD. Pozostałe gałęzie zostają tam, gdzie były.'}}
+ ]},
+ {id:'merge', title:'Scalanie gałęzi', short:'Fast-forward, merge commit i konflikty.', panels:['local'],
+  lead:'Kiedy praca na gałęzi jest gotowa, trzeba ją włączyć do main. Git robi to na dwa sposoby, zależnie od kształtu historii.',
+  init:['git commit -m "Start"','git switch -c naglowek','git commit -m "Nowy nagłówek"','git switch main'], steps:[
+  {t:'Prosta sytuacja', c:['git log --oneline --all'], b:`<p>Gałąź <code>naglowek</code> ma jeden nowy commit, a <code>main</code> nie zmienił się od chwili rozgałęzienia. Jesteś na <code>main</code> i chcesz dołączyć nowy nagłówek.</p>`},
+  {t:'Fast-forward', c:['git merge naglowek'], b:`<p>Skoro <code>main</code> jest bezpośrednim przodkiem <code>naglowek</code>, Git nie musi niczego łączyć. Po prostu przesuwa wskaźnik <code>main</code> do przodu. To <b>fast-forward</b>.</p><p>Nie powstaje żaden nowy commit, a historia zostaje prosta.</p>`},
+  {t:'Sprzątanie', c:['git branch -d naglowek'], b:`<p>Gałąź spełniła swoje zadanie, więc ją usuwasz. Commity zostają, bo wskazuje na nie <code>main</code>. Znika tylko karteczka z nazwą.</p><p>Git nie pozwoli usunąć przez <code>-d</code> gałęzi, której zmiany nie zostały nigdzie scalone. Chroni cię to przed utratą pracy.</p>`},
+  {t:'Historie się rozjechały', c:['git switch -c koszyk','git commit -m "Koszyk"','git commit -m "Suma w koszyku"','git switch main','git commit -m "Nowa stopka"'], b:`<p>Tym razem do przodu poszły obie gałęzie. Samo przesunięcie wskaźnika nie wystarczy, bo zgubiłaby się albo <i>Nowa stopka</i>, albo koszyk.</p>`},
+  {t:'Merge commit', c:['git merge koszyk'], b:`<p>Git tworzy specjalny <b>merge commit</b> z dwoma rodzicami i łączy w nim zmiany z obu gałęzi. Na diagramie poznasz go po kropce z jasnym środkiem.</p><p>Historia pokazuje teraz, że praca szła równolegle i w tym miejscu się połączyła.</p>`},
+  {t:'Gdy Git nie wie, co wybrać', c:[], b:`<p>Jeśli obie gałęzie zmieniły tę samą linię pliku, Git zatrzyma scalanie i zgłosi <b>konflikt</b>. W pliku zobaczysz znaczniki:</p><pre class="code">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+&lt;h1&gt;Sklep Aleksandry&lt;/h1&gt;
+=======
+&lt;h1&gt;Sklep z herbatą&lt;/h1&gt;
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; koszyk</pre><p>Górna część pochodzi z bieżącej gałęzi, dolna ze scalanej. Usuwasz znaczniki, zostawiasz właściwą wersję, a potem <code>git add</code> i <code>git commit</code> kończą scalanie. Jeśli chcesz się wycofać, wpisz <code>git merge --abort</code>.</p>`,
+   quiz:{q:'Kiedy Git wykona fast-forward?',o:['Gdy bieżąca gałąź nie ma commitów, których brakuje w scalanej','Zawsze, gdy scalasz coś do main','Gdy wystąpi konflikt'],a:0,why:'Fast-forward jest możliwy, gdy bieżąca gałąź jest przodkiem scalanej. Wtedy wystarczy przesunąć wskaźnik.'}}
+ ]},
+ {id:'rebase', title:'Rebase', short:'Przenoszenie commitów na nowy początek, force push i złota zasada.', panels:['local','remote'],
+  lead:'Rebase to druga droga do połączenia pracy. Zamiast wiązać historie supłem, przenosi twoje commity na nowy początek.',
+  init:['@remote-init projekt','@remote-commit "Start" Aleksandra','git clone https://github.com/zespol/projekt.git','git switch -c wyszukiwarka','git commit -m "Pole wyszukiwania"','git commit -m "Lista wyników"','git push -u origin wyszukiwarka','@remote-commit "Poprawka API" Aleksandra','git switch main','git pull','git switch wyszukiwarka'], steps:[
+  {t:'Punkt wyjścia', c:['git status'], b:`<p>Pracujesz na gałęzi <code>wyszukiwarka</code> i masz ją już na GitHubie. W tym czasie Aleksandra wypchnęła na <code>main</code> <i>Poprawkę API</i>, którą masz już u siebie na <code>main</code>, ale twoja gałąź jeszcze nie.</p><p>Merge dałby merge commit. Rebase zrobi to inaczej.</p>`},
+  {t:'git rebase main', c:['git rebase main'], b:`<p>Git odkłada twoje commity na bok, przestawia gałąź na koniec <code>main</code> i odtwarza na nim zmiany jedną po drugiej.</p><p>Opisy są te same, ale <b>hashe są nowe</b>. To nowe commity, bo zmienił się ich rodzic. Stare kropki z przerywaną obwódką nie należą już do żadnej gałęzi i Git z czasem je usunie.</p>`},
+  {t:'Force push po rebase', c:['git status','git push','git push --force-with-lease'], b:`<p>Po rebase twoja gałąź i zakładka <code>origin/wyszukiwarka</code> się rozjechały: na GitHubie są stare commity, u ciebie ich nowe kopie. Zwykły <code>git push</code> zostaje odrzucony, bo nadpisałby historię.</p><p><code>git push --force-with-lease</code> nadpisuje gałąź na GitHubie, ale tylko wtedy, gdy nikt inny nic na nią w międzyczasie nie wysłał. Używaj go wyłącznie na własnych gałęziach, nigdy na <code>main</code>. To samo dotyczy pushu po <code>git commit --amend</code>.</p>`},
+  {t:'Liniowa historia', c:['git switch main','git merge wyszukiwarka','git push'], b:`<p>Teraz <code>main</code> jest przodkiem <code>wyszukiwarka</code>, więc scalenie to zwykły fast-forward. Historia wygląda tak, jakby cała praca szła po kolei, bez rozgałęzień.</p>`},
+  {t:'Złota zasada rebase’u', c:[], b:`<p>Rebase przepisuje historię. Jeśli ktoś już pobrał twoje stare commity, po tej operacji jego kopia przestanie pasować do twojej.</p><p><b>Nie przenoś rebase’em commitów, które są już na wspólnej gałęzi.</b> Na własnej gałęzi, zanim otworzysz pull request, rebase jest w porządku.</p><div class="tblwrap"><table class="cmp"><tr><th></th><th>merge</th><th>rebase</th></tr><tr><td>Historia</td><td>prawdziwa, z rozgałęzieniami</td><td>liniowa, łatwa do czytania</td></tr><tr><td>Nowe commity</td><td>jeden merge commit</td><td>kopie twoich commitów</td></tr><tr><td>Na wspólnych gałęziach</td><td>bezpieczny</td><td>ryzykowny</td></tr></table></div>`,
+   quiz:{q:'Dlaczego rebase nadaje commitom nowe hashe?',o:['Bo Git losuje hashe przy każdym poleceniu','Bo zmienił się ich rodzic, a hash zależy od rodzica','Bo rebase usuwa zmiany w plikach'],a:1,why:'Hash liczony jest z całej zawartości commita, łącznie z hashem rodzica. Nowy rodzic oznacza nowy commit.'}}
+ ]},
+ {id:'github', title:'GitHub i zdalne repozytorium', short:'Polecenia clone, push, fetch i pull oraz pull requesty.', panels:['local','remote'],
+  lead:'GitHub przechowuje kopię repozytorium, z którą synchronizuje się cały zespół. Git nie robi tego sam: zmiany wysyłasz i pobierasz konkretnymi poleceniami.',
+  init:['@remote-init sklep','@remote-commit "Pierwszy commit" Aleksandra','@remote-commit "Lista produktów" Aleksandra'], steps:[
+  {t:'Repozytorium na GitHubie', c:[], b:`<p>Aleksandra założyła projekt sklepu na GitHubie. Po prawej widzisz to repozytorium. Ty nie masz jeszcze żadnej kopii na swoim komputerze.</p><p>Repozytorium na serwerze nazywa się <b>zdalnym</b> (ang. remote). Domyślnie zdalne repozytorium nazywa się <code>origin</code>.</p>`},
+  {t:'git clone', c:['git clone https://github.com/zespol/sklep.git'], b:`<p><code>git clone</code> pobiera całe repozytorium razem z historią. Masz pełną kopię, a nie tylko najnowsze pliki.</p><p>Etykieta <code>origin/main</code> z przerywaną ramką to zakładka. Pokazuje, gdzie była gałąź <code>main</code> na GitHubie przy ostatniej synchronizacji.</p>`},
+  {t:'Commit tylko u ciebie', c:['git commit -m "Opis produktu"','git status'], b:`<p>Nowy commit istnieje wyłącznie na twoim komputerze. GitHub nic o nim nie wie. <code>git status</code> mówi, że twoja gałąź wyprzedza <code>origin/main</code> o jeden commit.</p>`},
+  {t:'git push', c:['git push'], b:`<p><code>git push</code> wysyła brakujące commity na GitHuba i przesuwa tam gałąź <code>main</code>. Zakładka <code>origin/main</code> dogania twoje <code>main</code>.</p>`},
+  {t:'Ktoś inny też pracuje', c:['@remote-commit "Nowe zdjęcia" Aleksandra'], b:`<p>Aleksandra wypchnęła swój commit. Jest na GitHubie, ale twoje repozytorium nic o nim nie wie. Git nie synchronizuje się sam w tle.</p><p>Jeśli teraz zrobisz własny commit i <code>git push</code>, GitHub go odrzuci. Najpierw trzeba pobrać pracę Aleksandry.</p>`},
+  {t:'git fetch', c:['git fetch'], b:`<p><code>git fetch</code> pobiera nowe commity i przesuwa zakładkę <code>origin/main</code>. Twoja gałąź <code>main</code> i twoje pliki zostają bez zmian.</p><p>To bezpieczny sposób, by sprawdzić, co nowego, zanim cokolwiek połączysz.</p>`},
+  {t:'git pull', c:['git pull'], b:`<p><code>git pull</code> to <code>git fetch</code> i od razu <code>git merge</code>. Tutaj wystarczył fast-forward, więc <code>main</code> po prostu przesunął się na commit Aleksandry.</p>`},
+  {t:'Gałąź do pull requesta', c:['git switch -c opinie','git commit -m "Sekcja opinii"','git push -u origin opinie'], b:`<p>W zespołach nie wypycha się zmian prosto na <code>main</code>. Tworzysz gałąź, wypychasz ją, a na GitHubie otwierasz <b>pull request</b>, czyli prośbę o scalenie. Jest w nim miejsce na przegląd kodu i dyskusję.</p><p>Flaga <code>-u</code> zapamiętuje powiązanie z <code>origin/opinie</code>, więc następnym razem wystarczy samo <code>git push</code>.</p>`},
+  {t:'Scalenie na GitHubie', c:['@remote-merge opinie'], b:`<p>Aleksandra przejrzała zmiany i kliknęła <i>Merge pull request</i>. GitHub utworzył merge commit na swoim <code>main</code>. U ciebie jeszcze go nie ma.</p>`},
+  {t:'Synchronizacja po scaleniu', c:['git switch main','git pull','git branch -d opinie'], b:`<p>Wracasz na <code>main</code>, pobierasz scaloną wersję i usuwasz lokalną gałąź. Oba repozytoria mają znowu tę samą historię.</p>`,
+   quiz:{q:'Czym różni się git fetch od git pull?',o:['git fetch tylko pobiera commity, a git pull dodatkowo scala je z bieżącą gałęzią','git fetch wysyła zmiany, a git pull je pobiera','Niczym, to dwie nazwy tego samego polecenia'],a:0,why:'Polecenie git pull to git fetch, po którym od razu następuje git merge.'}}
+ ]},
+{id:'zespol', title:'Pull request we dwoje', short:'Ty i Aleksandra: odrzucony push, pull request, recenzja i scalenie.', panels:['local','remote','peer'],
+  lead:'Po lewej jest twoje repozytorium, po prawej repozytorium Aleksandry, a pośrodku wspólny GitHub. Zobaczysz, jak praca jednej osoby wpływa na drugą i jak przebiega pull request od otwarcia do scalenia.',
+  init:['@remote-init sklep','@remote-commit "Pierwszy commit" Aleksandra','git clone https://github.com/zespol/sklep.git','ola: git clone https://github.com/zespol/sklep.git'], steps:[
+  {t:'Dwa komputery, jeden GitHub', c:['git status','ola: git status'], b:`<p>Ty i Aleksandra sklonowaliście to samo repozytorium. Każde z was ma pełną, niezależną kopię historii. GitHub pośrodku to jedyne miejsce, przez które wymieniacie się pracą.</p><p>W terminalu polecenia Aleksandry mają fioletowy znak zachęty <code>aleksandra@laptop</code>, a twoje zielony <code>ty@laptop</code>.</p>`},
+  {t:'Aleksandra wypycha zmianę', c:['ola: git commit -m "Cennik"','ola: git push'], b:`<p>Aleksandra robi commit i od razu wypycha go na <code>main</code>. Jej repozytorium i GitHub są teraz o krok do przodu.</p><p>U ciebie nic się nie zmieniło, nawet zakładka <code>origin/main</code>. Twój komputer dowie się o tej zmianie dopiero wtedy, gdy o nią zapytasz.</p>`},
+  {t:'Twój push zostaje odrzucony', c:['git commit -m "Strona kontakt"','git push'], b:`<p>Ty też masz nowy commit na <code>main</code>. Przy próbie wysłania GitHub odmawia, bo jego <code>main</code> zawiera commit, którego nie masz. Gdyby przyjął twój push, praca Aleksandry by przepadła.</p><p>To nie błąd, tylko zabezpieczenie. Git sam podpowiada rozwiązanie: najpierw <code>git pull</code>.</p>`},
+  {t:'Najpierw pull, potem push', c:['git pull','git push'], b:`<p><code>git pull</code> pobiera commit Aleksandry i łączy go z twoim. Historie się rozjechały, więc powstaje merge commit. Teraz push przechodzi.</p><p>Aleksandra jeszcze nie ma twojego commita. Zobaczy go po swoim <code>git pull</code>.</p>`},
+  {t:'Gałąź na nową funkcję', c:['git switch -c opinie','git commit -m "Sekcja opinii"','git push -u origin opinie'], b:`<p>Większe zmiany robi się na osobnej gałęzi. Tworzysz <code>opinie</code>, robisz commit i wypychasz gałąź na GitHuba. Na <code>main</code> nic się nie zmienia.</p>`},
+  {t:'Otwierasz pull request', c:['gh pr create --title "Sekcja opinii" --body "Opinie klientów na stronie produktu"'], b:`<p>Pull request to prośba: „przejrzyj moją gałąź i włącz ją do <code>main</code>”. Zwykle otwiera się go przyciskiem na github.com. Tutaj używamy <code>gh</code>, oficjalnego narzędzia GitHuba do terminala.</p><p>Pod repozytorium na GitHubie pojawiła się karta PR. Gałąź <code>main</code> jest chroniona: przyjmie zmiany dopiero po zatwierdzeniu przez kogoś innego niż autor.</p>`},
+  {t:'Aleksandra pobiera PR do siebie', c:['ola: gh pr checkout 1','ola: git log --oneline'], b:`<p><code>gh pr checkout 1</code> pobiera gałąź z pull requesta i przełącza na nią Aleksandrę. To skrót od <code>git fetch</code> i <code>git switch opinie</code>.</p><p>Aleksandra ma teraz u siebie dokładnie twoje commity. Może uruchomić stronę, przeklikać ją i sprawdzić, czy wszystko działa.</p>`},
+  {t:'Prośba o poprawki', c:['ola: gh pr review 1 --request-changes -b "Dodaj gwiazdki do ocen"'], b:`<p>Aleksandrze czegoś brakuje, więc zostawia recenzję z prośbą o zmiany. Status PR zmienia się na <i>Prośba o zmiany</i> i scalenie jest zablokowane.</p>`},
+  {t:'Poprawiasz na tej samej gałęzi', c:['git commit -m "Gwiazdki w ocenach"','git push'], b:`<p>Nie otwierasz nowego pull requesta. Robisz commit na tej samej gałęzi i wypychasz go. PR wskazuje na gałąź, a nie na konkretne commity, więc aktualizuje się sam i ma teraz 2 commity.</p>`},
+  {t:'Aleksandra zatwierdza', c:['ola: git pull','ola: gh pr review 1 --approve'], b:`<p>Aleksandra pobiera twoją poprawkę do swojej kopii gałęzi <code>opinie</code>, sprawdza ją i zatwierdza PR. Warunek ochrony gałęzi jest spełniony.</p><p>Autor nie może zatwierdzić własnego pull requesta. Przy takiej próbie <code>gh</code> odpowie błędem <i>Can not approve your own pull request</i>.</p>`},
+  {t:'Scalenie', c:['ola: gh pr merge 1 --merge --delete-branch'], b:`<p>Aleksandra scala PR. Na GitHubie powstaje merge commit na <code>main</code>, a gałąź <code>opinie</code> znika. Flaga <code>--delete-branch</code> sprząta też u niej: przełącza ją na <code>main</code>, pobiera scaloną wersję i usuwa lokalną gałąź.</p><p>Zamiast <code>--merge</code> można użyć <code>--squash</code>. Wtedy wszystkie commity z PR zostają sklejone w jeden.</p>`},
+  {t:'Ty też sprzątasz', c:['git switch main','git pull','git branch -d opinie','git fetch --prune'], b:`<p>U ciebie wciąż jest gałąź <code>opinie</code> i zakładka <code>origin/opinie</code>, chociaż na GitHubie już ich nie ma. Przełączasz się na <code>main</code>, pobierasz scalenie i usuwasz gałąź.</p><p><code>git fetch --prune</code> usuwa zakładki gałęzi, których nie ma już na GitHubie. Wszystkie trzy repozytoria mają teraz tę samą historię.</p>`,
+   quiz:{q:'Aleksandra poprosiła o zmiany w twoim pull requeście. Co robisz?',o:['Otwierasz nowy pull request z poprawkami','Robisz commit na tej samej gałęzi i git push, a PR aktualizuje się sam','Zatwierdzasz PR sam, żeby go odblokować'],a:1,why:'Pull request śledzi gałąź, więc każdy push na nią od razu pojawia się w PR. Własnego pull requesta nie da się zatwierdzić.'}}
+ ]},
+{id:'poprawki', title:'Poprawianie historii', short:'amend, restore --staged, reset --soft, cherry-pick, merge --no-ff i porządki w gałęziach.', panels:['areas','local'],
+  lead:'Zanim zmiany trafią do innych, możesz jeszcze dopracować swoją historię: poprawić opis commita, wyjąć plik z poczekalni, cofnąć przedwczesny commit albo przenieść jedną poprawkę między gałęziami.',
+  init:['edit index.html','git add .','git commit -m "Start"','git switch -c poprawka','edit app.js','git add .','git commit -m "Napraw logowanie"','git switch main','edit cennik.html','git add .','git commit -m "Cenik"'], steps:[
+  {t:'Literówka w opisie commita', c:['git log --oneline','git commit --amend -m "Cennik"'], b:`<p>Ostatni commit ma literówkę w opisie. <code>git commit --amend</code> zastępuje go nowym commitem z poprawionym opisem. Jeśli coś leżało w poczekalni, też trafi do poprawionego commita.</p><p>Stary commit nie należy już do gałęzi, dlatego <code>--amend</code> stosuj tylko do commitów, których jeszcze nie ma na GitHubie.</p>`},
+  {t:'Za dużo w poczekalni', c:['edit cennik.html','edit notatki.txt','git add .','git status'], b:`<p><code>git add .</code> dodało do poczekalni także prywatne notatki, które nie powinny trafić do commita.</p>`},
+  {t:'git restore --staged', c:['git restore --staged notatki.txt','git status'], b:`<p>Plik wraca z poczekalni do katalogu roboczego. Zmiany w nim zostają, ale nie wejdą do najbliższego commita.</p><p>To samo robi starsze polecenie <code>git reset notatki.txt</code>.</p>`},
+  {t:'Cofnięcie commita bez utraty zmian', c:['git commit -m "Nowe ceny"','git reset --soft HEAD~1','git status'], b:`<p>Commit okazał się przedwczesny. <code>git reset --soft HEAD~1</code> przesuwa gałąź o jeden commit wstecz, a zmiany z tego commita wracają do poczekalni. Możesz je poprawić i zapisać jeszcze raz.</p><p>Z domyślnym <code>--mixed</code> zmiany wróciłyby do katalogu roboczego, poza poczekalnię.</p>`},
+  {t:'cherry-pick: jeden commit z innej gałęzi', c:['git commit -m "Nowe ceny"','git cherry-pick poprawka'], b:`<p>Na gałęzi <code>poprawka</code> leży commit naprawiający logowanie, który pilnie jest potrzebny na <code>main</code>. <code>git cherry-pick</code> kopiuje na bieżącą gałąź jeden wskazany commit.</p><p>Kopia ma ten sam opis, ale nowy hash, bo ma innego rodzica.</p>`},
+  {t:'Scalanie zawsze przez merge commit', c:['git switch -c raport','git commit -m "Raport"','git switch main','git merge --no-ff raport'], b:`<p>Tutaj wystarczyłby fast-forward, ale <code>--no-ff</code> wymusza merge commit. W historii zostaje ślad, że praca szła na osobnej gałęzi. Wiele zespołów tak scala każdą funkcję.</p><p>Gdy scalanie zatrzyma się na konflikcie, <code>git merge --abort</code> przywraca stan sprzed scalania.</p>`},
+  {t:'Porządki w gałęziach', c:['git branch -d poprawka','git branch -D poprawka','git switch -','git switch -','git log --oneline --graph --all'], b:`<p><code>git branch -d</code> odmawia, bo commit z <code>poprawka</code> nie jest częścią <code>main</code> (mamy tylko jego kopię). <code>-D</code> usuwa gałąź mimo to. Tutaj to bezpieczne, bo poprawka jest już na <code>main</code>.</p><p><code>git switch -</code> przełącza na poprzednią gałąź, jak przycisk „wstecz”. <code>git log --oneline --graph --all</code> pokazuje historię wszystkich gałęzi naraz, a w prawdziwym terminalu rysuje też graf.</p>`,
+   quiz:{q:'Co robi git commit --amend?',o:['Dodaje nowy commit na końcu gałęzi','Zastępuje ostatni commit nowym, poprawionym','Cofa ostatni commit i usuwa jego zmiany'],a:1,why:'--amend tworzy nowy commit w miejsce ostatniego. Stary nie należy już do gałęzi, dlatego w ten sposób nie poprawia się commitów, które są już na GitHubie.'}}
+ ]},
+ {id:'codzien', title:'GitHub na co dzień', short:'Konfiguracja, podłączanie repozytorium, bezpieczny pull, squash, zamykanie PR i sprzątanie gałęzi.', panels:['local','remote','peer'],
+  lead:'Polecenia, które przydają się w codziennej pracy z zespołem: od pierwszej konfiguracji i podłączenia repozytorium, przez przegląd pull requestów, po zamykanie niepotrzebnych PR i sprzątanie.',
+  init:['git commit -m "Start"','git commit -m "Strona główna"'], steps:[
+  {t:'Kim jesteś dla Gita', c:['git config --global user.name "Ty"','git config --global user.email "ty@example.com"','git config pull.rebase false'], b:`<p>Każdy commit zapisuje autora. Na nowym komputerze ustawiasz go raz, z flagą <code>--global</code>.</p><p><code>pull.rebase false</code> mówi Gitowi, że przy rozjechanych historiach <code>git pull</code> ma robić merge.</p>`},
+  {t:'Podłączasz repozytorium z GitHuba', c:['git remote add origin https://github.com/zespol/projekt.git','git remote -v'], b:`<p>Projekt powstał na twoim komputerze, a na GitHubie czeka puste repozytorium. <code>git remote add</code> zapisuje jego adres pod nazwą <code>origin</code>, a <code>git remote -v</code> pokazuje podłączone adresy.</p>`},
+  {t:'Pierwszy push', c:['git push','git push -u origin main'], b:`<p>Samo <code>git push</code> nie wie jeszcze, dokąd wysłać gałąź, więc Git podpowiada <code>--set-upstream</code>. Po <code>git push -u origin main</code> GitHub ma całą historię, a twoje <code>main</code> jest powiązane z <code>origin/main</code>.</p>`},
+  {t:'Aleksandra dołącza', c:['ola: git clone https://github.com/zespol/projekt.git','ola: git switch -c baner','ola: git commit -m "Baner"','ola: git push -u origin baner','git fetch','git branch -a'], b:`<p>Aleksandra klonuje repozytorium i wypycha własną gałąź. Po <code>git fetch</code> widzisz ją u siebie jako zakładkę <code>origin/baner</code>.</p><p><code>git branch</code> pokazuje tylko gałęzie lokalne, a <code>git branch -a</code> także te z GitHuba.</p>`},
+  {t:'Bezpieczny pull', c:['ola: git switch main','ola: git commit -m "Stopka"','ola: git push','git commit -m "Menu"','git pull --ff-only','git pull','git push'], b:`<p><code>git pull --ff-only</code> pobiera zmiany tylko wtedy, gdy wystarczy przesunąć gałąź. Tutaj historie się rozjechały, więc Git przerywa i niczego nie scala. Decyzja należy do ciebie.</p><p>Zwykłe <code>git pull</code> robi merge, bo tak ustawiliśmy w pierwszym kroku.</p>`},
+  {t:'Przeglądasz pull requesty', c:['ola: gh pr create --head baner --title "Baner na stronie głównej"','gh pr list','gh pr view 1'], b:`<p><code>gh pr list</code> pokazuje otwarte pull requesty, a <code>gh pr view</code> szczegóły jednego z nich: autora, liczbę commitów i stan recenzji.</p>`},
+  {t:'Scalenie przez squash', c:['gh pr review 1 --approve','ola: gh pr merge 1 --squash --delete-branch','git pull'], b:`<p>Zatwierdzasz pull request Aleksandry, a ona scala go z opcją <code>--squash</code>. Wszystkie commity z gałęzi zostają sklejone w jeden nowy commit na <code>main</code>, więc historia jest krótsza.</p><p><code>--delete-branch</code> usuwa gałąź <code>baner</code> na GitHubie i u Aleksandry. Ty pobierasz nowy <code>main</code> przez <code>git pull</code>.</p>`},
+  {t:'Pomysł do kosza', c:['git switch -c szukaj','git commit -m "Wyszukiwarka"','git push -u origin szukaj','gh pr create --title "Wyszukiwarka"','gh pr close 2'], b:`<p>Otwierasz pull request z wyszukiwarką, ale zespół postanawia jej nie robić. <code>gh pr close</code> zamyka pull request bez scalania. Gałąź na GitHubie jednak zostaje.</p>`},
+  {t:'Sprzątanie', c:['git push origin --delete szukaj','git switch main','git fetch --prune','git branch -a'], b:`<p><code>git push origin --delete</code> usuwa gałąź z GitHuba. <code>git fetch --prune</code> usuwa u ciebie zakładki gałęzi, których już tam nie ma, np. <code>origin/baner</code> po scaleniu Aleksandry.</p><p>Lokalna gałąź <code>szukaj</code> zostaje. Nie została scalona, więc <code>git branch -d</code> jej nie usunie. Jak usunąć ją mimo to, zobaczysz w rozdziale „Poprawianie historii”.</p>`,
+   quiz:{q:'Historie się rozjechały. Co zrobi git pull --ff-only?',o:['Zrobi merge commit','Przerwie i niczego nie zmieni','Nadpisze zmiany z GitHuba twoimi'],a:1,why:'--ff-only pozwala tylko na przesunięcie gałęzi do przodu. Gdy to nie wystarczy, Git przerywa i zostawia decyzję tobie.'}}
+ ]},
+ {id:'cofanie', title:'Cofanie zmian', short:'Polecenia restore, revert i reset oraz reflog jako siatka bezpieczeństwa.', panels:['areas','local'],
+  lead:'Każdy się myli. Git daje kilka sposobów na cofnięcie zmian, a wybór zależy od tego, czy zmiana jest już w historii i czy ktoś inny ją widział.',
+  init:['edit ceny.json','git add .','git commit -m "Start"','edit ceny.json','git commit -am "Dobre ceny"','edit ceny.json','git commit -am "Błędne ceny"','edit index.html','git add .','git commit -m "Baner"'], steps:[
+  {t:'Zmiana jeszcze niezapisana', c:['edit ceny.json','git status'], b:`<p>Zmieniasz <code>ceny.json</code> i od razu widzisz, że to pomyłka. Zmiana jest tylko w katalogu roboczym, nie ma jej w poczekalni ani w historii.</p>`},
+  {t:'git restore', c:['git restore ceny.json','git status'], b:`<p><code>git restore plik</code> przywraca wersję z poczekalni i wyrzuca niezapisane zmiany. Uważaj: tych zmian nie da się odzyskać, bo nigdy nie trafiły do Gita.</p>`},
+  {t:'git revert', c:['git revert HEAD~1'], b:`<p>Commit <i>Błędne ceny</i> jest już w historii i inni mogli go pobrać. <code>git revert</code> tworzy <b>nowy</b> commit, który odwraca jego zmiany.</p><p>Historia nie jest przepisywana, więc to bezpieczny sposób na wspólnych gałęziach.</p>`},
+  {t:'git reset', c:['git reset --hard HEAD~3'], b:`<p><code>git reset</code> przesuwa gałąź wstecz, jakby kolejne commity nigdy nie powstały. Odcięte commity mają teraz przerywaną obwódkę i nie należą do żadnej gałęzi.</p><p>Opcja <code>--hard</code> wyrzuca przy tym także zmiany w plikach. Łagodniejsze odmiany resetu, które zachowują zmiany, poznasz w rozdziale „Poprawianie historii”.</p><p>Reset przepisuje historię, więc używaj go tylko na commitach, których nikt jeszcze nie pobrał.</p>`},
+  {t:'git reflog ratuje sytuację', c:['git reflog','git reset --hard ORIG_HEAD'], b:`<p>Git przez pewien czas pamięta każde przesunięcie HEAD w <b>reflogu</b>. Dzięki temu odcięte commity da się odzyskać.</p><p><code>ORIG_HEAD</code> wskazuje miejsce sprzed ostatniego resetu. Jeden reset w drugą stronę i wszystko wraca.</p>`,
+   quiz:{q:'Commit z błędem jest już na GitHubie i inni go pobrali. Czego użyjesz?',o:['git reset --hard','git revert','git restore'],a:1,why:'Polecenie revert dodaje nowy commit i nie przepisuje historii, więc nikomu niczego nie psuje. Po resecie na wspólnej gałęzi twoja historia rozjechałaby się z kopiami innych osób.'}}
+ ]},
+];
+const SANDBOX={id:'piaskownica', title:'Piaskownica', short:'Dwa terminale, twój i Aleksandry, pull requesty i zadania do wykonania.'};
+const ORDER=['obszary','historia','galezie','merge','github','zespol','cofanie','codzien','rebase','poprawki'];
+CH.sort((a,b)=>ORDER.indexOf(a.id)-ORDER.indexOf(b.id));
+const GROUPS=[{t:'Podstawy',ids:ORDER.slice(0,8)},{t:'Zaawansowane',ids:ORDER.slice(8)},{t:'Praktyka',ids:['piaskownica','sciaga']}];
+const groupOf=id=>(GROUPS.find(g=>g.ids.includes(id))||{t:''}).t;
+const CHEATSHEET={id:'sciaga', title:'Ściąga', short:'Wszystkie polecenia w jednym miejscu, z wyszukiwarką.'};
+const ALL=[...CH,SANDBOX,CHEATSHEET];
+const SHEET=[
+ {g:'Start i konfiguracja', r:[
+  ['git config --global user.name "Imię Nazwisko"','Ustawia twoje imię zapisywane w commitach (raz na komputer).'],
+  ['git config --global user.email "ty@example.com"','Ustawia e-mail zapisywany w commitach.'],
+  ['git config pull.rebase false','Przy rozjechanych historiach git pull robi merge (true: rebase).'],
+  ['git init','Zamienia bieżący folder w repozytorium.'],
+  ['git clone <adres>','Pobiera całe repozytorium z historią, np. z GitHuba.']]},
+ {g:'Zmiany i commity', r:[
+  ['git status','Pokazuje bieżącą gałąź oraz zmiany: nowe, zmienione i w poczekalni.'],
+  ['git add <plik>','Wkłada plik do poczekalni (staging).'],
+  ['git add .','Wkłada do poczekalni wszystkie zmiany w folderze.'],
+  ['git restore <plik>','Wyrzuca niezapisane zmiany w pliku. Tego nie da się cofnąć.'],
+  ['git restore --staged <plik>','Wyjmuje plik z poczekalni, zmiany zostają w pliku.'],
+  ['git commit -m "opis"','Zapisuje zawartość poczekalni jako nowy commit.'],
+  ['git commit -am "opis"','Dodaje zmienione śledzone pliki i od razu robi commit.'],
+  ['git commit --amend -m "opis"','Poprawia ostatni commit (nowy hash). Tylko przed wypchnięciem.'],
+  ['git diff','Pokazuje różnice w treści plików.',1]]},
+ {g:'Historia', r:[
+  ['git log --oneline','Historia bieżącej gałęzi, po jednym commicie na linię.'],
+  ['git log --oneline --graph --all','Historia wszystkich gałęzi (w prawdziwym Gicie także jako graf).'],
+  ['git show <hash>','Pokazuje szczegóły i zmiany jednego commita.',1],
+  ['git reflog','Lista wszystkich przesunięć HEAD. Ratunek po resecie.']]},
+ {g:'Gałęzie', r:[
+  ['git branch','Lista gałęzi lokalnych, gwiazdka oznacza bieżącą.'],
+  ['git branch -a','Lista gałęzi razem z gałęziami z GitHuba (origin/...).'],
+  ['git branch <nazwa>','Tworzy gałąź w bieżącym miejscu, bez przełączania.'],
+  ['git switch <nazwa>','Przełącza na gałąź.'],
+  ['git switch -c <nazwa>','Tworzy gałąź i od razu na nią przełącza.'],
+  ['git switch -','Wraca na poprzednią gałąź.'],
+  ['git branch -d <nazwa>','Usuwa gałąź, jeśli jej zmiany są już scalone.'],
+  ['git branch -D <nazwa>','Usuwa gałąź bez sprawdzania. Ostrożnie.'],
+  ['git checkout <hash>','Przechodzi do starego commita (detached HEAD).']]},
+ {g:'Łączenie pracy', r:[
+  ['git merge <gałąź>','Scala gałąź z bieżącą: fast-forward albo merge commit.'],
+  ['git merge --no-ff <gałąź>','Scala zawsze przez merge commit, nawet gdy wystarczy fast-forward.'],
+  ['git merge --abort','Przerywa scalanie z konfliktem.'],
+  ['git rebase main','Przenosi commity bieżącej gałęzi na koniec main.'],
+  ['git cherry-pick <hash>','Kopiuje jeden commit na bieżącą gałąź.']]},
+ {g:'GitHub i zdalne repozytorium', r:[
+  ['git remote add origin <adres>','Podłącza repozytorium na GitHubie pod nazwą origin.'],
+  ['git remote -v','Pokazuje podłączone zdalne repozytoria.'],
+  ['git fetch','Pobiera nowe commity i przesuwa zakładki origin/..., niczego nie scala.'],
+  ['git fetch --prune','Jak wyżej, a do tego usuwa zakładki gałęzi skasowanych na GitHubie.'],
+  ['git pull','git fetch i od razu scalenie z bieżącą gałęzią.'],
+  ['git pull --rebase','git fetch i przeniesienie twoich commitów na koniec zdalnych.'],
+  ['git pull --ff-only','Pobiera zmiany tylko wtedy, gdy wystarczy fast-forward.'],
+  ['git push','Wysyła commity bieżącej gałęzi na GitHuba.'],
+  ['git push -u origin <gałąź>','Pierwsze wysłanie nowej gałęzi i zapamiętanie powiązania.'],
+  ['git push --force-with-lease','Nadpisuje gałąź na GitHubie po rebase. Tylko na własnej gałęzi.'],
+  ['git push origin --delete <gałąź>','Usuwa gałąź na GitHubie.']]},
+ {g:'Pull requesty (GitHub CLI)', r:[
+  ['gh pr create --title "opis"','Otwiera pull request z bieżącej, wypchniętej gałęzi.'],
+  ['gh pr list','Lista otwartych pull requestów.'],
+  ['gh pr view <nr>','Szczegóły pull requesta: status, commity, recenzje.'],
+  ['gh pr checkout <nr>','Pobiera gałąź pull requesta i przełącza na nią.'],
+  ['gh pr review <nr> --approve','Zatwierdza pull request (nie swój).'],
+  ['gh pr review <nr> --request-changes -b "uwagi"','Prosi autora o poprawki.'],
+  ['gh pr merge <nr> --merge --delete-branch','Scala pull request i usuwa jego gałąź.'],
+  ['gh pr merge <nr> --squash','Scala, sklejając wszystkie commity w jeden.'],
+  ['gh pr close <nr>','Zamyka pull request bez scalania.']]},
+ {g:'Cofanie zmian', r:[
+  ['git revert <hash>','Bezpiecznie cofa commit, dodając nowy, odwrotny commit.'],
+  ['git reset --soft HEAD~1','Cofa ostatni commit, zmiany zostają w poczekalni.'],
+  ['git reset HEAD~1','Cofa ostatni commit, zmiany zostają w plikach.'],
+  ['git reset --hard HEAD~1','Cofa ostatni commit i wyrzuca jego zmiany. Ostrożnie.'],
+  ['git reset <plik>','Wyjmuje plik z poczekalni (starszy odpowiednik restore --staged).'],
+  ['git reset --hard ORIG_HEAD','Odwraca ostatni reset.']]},
+ {g:'Odwołania do commitów', r:[
+  ['HEAD','Miejsce, w którym teraz jesteś.'],
+  ['HEAD~2','Dwa commity wstecz od HEAD.'],
+  ['HEAD^2','Drugi rodzic merge commita.'],
+  ['origin/main','Zakładka: gdzie był main na GitHubie przy ostatniej synchronizacji.'],
+  ['ORIG_HEAD','Miejsce sprzed ostatniego resetu, rebase’u lub scalenia.'],
+  ['a1b2c3d','Skrót hasha, zwykle wystarcza 7 znaków.']]},
+ {g:'Przydatne w prawdziwym Gicie', r:[
+  ['git stash','Odkłada niezapisane zmiany na bok, żeby czysto przełączyć gałąź.',1],
+  ['git stash pop','Przywraca odłożone zmiany.',1],
+  ['git tag v1.0','Nadaje commitowi trwałą etykietę, np. numer wersji.',1],
+  ['git blame <plik>','Pokazuje, kto i w którym commicie zmienił każdą linię.',1],
+  ['.gitignore','Plik z listą plików i folderów, których Git ma nie śledzić.',1]]},
+];
+function renderSheet(){
+  const idx=ALL.indexOf(CHEATSHEET);
+  $('#main').innerHTML=`<section class="lesson">
+    <div class="lhead"><p class="eyebrow">Praktyka · rozdział ${idx+1} z ${ALL.length}</p><h1>Ściąga</h1><p class="lead">Wszystkie polecenia z kursu w jednym miejscu. Kliknij polecenie, żeby je skopiować. Polecenia z etykietą <span class="realtag">nie działa w piaskownicy</span> wypróbujesz tylko w prawdziwym Gicie.</p></div>
+    <div class="sheet-search"><input id="sheetQ" type="search" placeholder="Szukaj, np. push albo cofnij" aria-label="Szukaj polecenia" autocomplete="off"></div>
+    <div class="sheet" id="sheet"></div><p class="small" id="sheetEmpty" hidden>Nic nie pasuje do wyszukiwania.</p></section>`;
+  const draw=q=>{ q=(q||'').toLowerCase().trim(); let any=false;
+    $('#sheet').innerHTML=SHEET.map(G=>{ const rows=G.r.filter(([c,d])=>!q||c.toLowerCase().includes(q)||d.toLowerCase().includes(q)||G.g.toLowerCase().includes(q)); if(!rows.length) return ''; any=true;
+      return `<div class="card sgroup"><h3>${G.g}</h3><dl>${rows.map(([c,d,real])=>`<div class="srow"><dt><button class="scode" data-c="${esc(c)}" title="Kopiuj">${esc(c)}</button>${real?'<span class="realtag">nie działa w piaskownicy</span>':''}</dt><dd>${d}</dd></div>`).join('')}</dl></div>`;}).join('');
+    $('#sheetEmpty').hidden=any;
+    document.querySelectorAll('.scode').forEach(b=>b.onclick=()=>{ const t=b.dataset.c; const ok=()=>{b.classList.add('copied'); setTimeout(()=>b.classList.remove('copied'),1200);};
+      try{ navigator.clipboard.writeText(t).then(ok).catch(()=>{ const r=document.createRange(); r.selectNodeContents(b); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); }); }catch(e){} });
+  };
+  $('#sheetQ').oninput=e=>draw(e.target.value); draw('');
+}
+
+function buildState(ch,stepIdx){
+  const s=newState('lesson'); let log=[];
+  ch.init.forEach(c=>run(s,c));
+  for(let i=0;i<=stepIdx;i++){ const out=ch.steps[i].c.map(c=>run(s,c)); if(i===stepIdx) log=out; }
+  return {s,log};
+}
+
+/* ============================== POSTĘP ============================== */
+const store={get(k,d){try{const v=localStorage.getItem('gitpod:'+k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem('gitpod:'+k,JSON.stringify(v));}catch(e){}}};
+let done=store.get('done',{});
+function markDone(id){done[id]=true;store.set('done',done);renderNav(currentId);}
+
+/* ============================== ROZMIAR TEKSTU ============================== */
+function applyFs(px){ px=Math.min(16,Math.max(12,+px||15)); document.documentElement.style.setProperty('--fs',(px/15).toFixed(4)); store.set('fs',px);
+  const box=document.getElementById('fsz'); box.innerHTML=[12,13,14,15,16].map(v=>`<button data-v="${v}" class="${v===px?'on':''}" aria-pressed="${v===px}" title="Tekst ${v} px">${v}</button>`).join('');
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>applyFs(+b.dataset.v)); }
+applyFs(store.get('fs',15));
+
+/* ============================== NAWIGACJA ============================== */
+const $=sel=>document.querySelector(sel);
+let currentId='start';
+function resetProgress(){
+  try{ const ks=[]; for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i); if(k&&k.startsWith('gitpod:')&&k!=='gitpod:fs') ks.push(k);} ks.forEach(k=>localStorage.removeItem(k)); }catch(e){}
+  done={}; sandboxState=null; sandboxLog={ty:[],ola:[]};
+}
+function resetUI(box){
+  const idle=()=>{ box.innerHTML='<button class="linkbtn">Resetuj postęp</button>'; box.querySelector('button').onclick=ask; };
+  const ask=()=>{ box.innerHTML=`<div class="confirm" role="alertdialog" aria-label="Potwierdź reset postępu"><p><b>Na pewno zresetować postęp?</b> Znikną ukończone rozdziały, zapamiętane kroki lekcji i cała praca w piaskownicy. Tego nie da się cofnąć.</p>
+      <div class="row"><button class="btn danger">Tak, resetuj</button><button class="btn ghost small">Anuluj</button></div></div>`;
+    const [yes,no]=box.querySelectorAll('button'); no.onclick=idle; no.focus();
+    yes.onclick=()=>{ resetProgress(); location.hash='start'; route(); const b=document.querySelector('[data-reset]'); if(b){ b.innerHTML='<span class="small">Postęp wyzerowany.</span>'; setTimeout(()=>{ if(b.isConnected) resetUI(b); },2500);} }; };
+  idle();
+}
+function renderNav(active){
+  const n=CH.filter(c=>done[c.id]).length;
+  $('#side').innerHTML=GROUPS.map(G=>`<h3>${G.t}</h3><ol>${G.ids.map(id=>{const c=ALL.find(x=>x.id===id), i=ALL.indexOf(c); return `<li><a href="#${c.id}" class="${c.id===active?'on':''} ${done[c.id]?'done':''}"><span class="dot">${done[c.id]?'✓':i+1}</span>${c.title}</a></li>`;}).join('')}</ol>`).join('')+`
+   <div class="prog">Ukończone: ${n} z ${CH.length}<div class="bar"><i style="width:${n/CH.length*100}%"></i></div></div>
+   <div class="resetbox" data-reset></div>`;
+  document.querySelectorAll('[data-reset]').forEach(resetUI);
+  $('#chips').innerHTML=`<a href="#start" class="${active==='start'?'on':''}">Start</a>`+ALL.map((c,i)=>`<a href="#${c.id}" class="${c.id===active?'on':''}">${i+1}. ${c.title}</a>`).join('');
+  const on=$('#chips a.on'); if(on) on.scrollIntoView({inline:'center',block:'nearest'});
+}
+let heroTimer=0, lessonKey=null;
+function route(){
+  const id=(location.hash||'').replace('#','')||'start';
+  clearTimeout(heroTimer); document.onkeydown=null;
+  currentId=ALL.some(c=>c.id===id)?id:'start';
+  renderNav(currentId);
+  if(currentId==='start') renderHome();
+  else if(currentId==='piaskownica') renderSandbox();
+  else if(currentId==='sciaga') renderSheet();
+  else renderLesson(CH.find(c=>c.id===currentId));
+  window.scrollTo(0,0);
+}
+addEventListener('hashchange',route);
+
+/* ============================== STRONA GŁÓWNA ============================== */
+function renderHome(){
+  $('#main').innerHTML=`
+  <section class="hero">
+    <div>
+      <h1>Nauka Git <em>i GitHub</em></h1>
+      <p>Zobacz, co naprawdę dzieje się w repozytorium, kiedy wpisujesz polecenie. Każdy rozdział to diagram, przez który przechodzisz krok po kroku. Na końcu czeka piaskownica z terminalem, w której sprawdzisz wszystko na własnej skórze.</p>
+      <div class="row"><a class="btn" href="#obszary">Zacznij od początku →</a><a class="btn ghost" href="#piaskownica">Otwórz piaskownicę</a></div>
+    </div>
+    <div class="demo" aria-label="Animowany przykład historii w Gicie">
+      <div class="demo-cap" id="demoCap">&nbsp;</div>
+      <div class="pbody" id="demoBody" style="min-height:230px"></div>
+    </div>
+  </section>
+  ${GROUPS.map(G=>`<h2 class="h2">${G.t}</h2>
+  <ol class="chapters">${G.ids.map(id=>{const c=ALL.find(x=>x.id===id), i=ALL.indexOf(c); return `<li><a href="#${c.id}"><span class="n ${done[c.id]?'done':''}">${i+1}</span><b>${c.title}</b><span class="d">${c.short}${c.steps?` · ${c.steps.length} kroków`:''}</span></a></li>`;}).join('')}</ol>`).join('')}
+  <div class="resetbox" data-reset style="margin-top:20px"></div>
+  <p class="howto">Po lekcjach poruszasz się przyciskami <i>Dalej</i> i <i>Wstecz</i> albo strzałkami na klawiaturze. Polecenia działają w symulatorze w przeglądarce, więc niczego nie zepsujesz. Komunikaty Gita są po angielsku, tak jak zobaczysz je w prawdziwym terminalu.</p>`;
+  document.querySelectorAll('#main [data-reset]').forEach(resetUI);
+  const seq=['git commit -m "Start"','git commit -m "Menu"','git switch -c koszyk','git commit -m "Koszyk"','git commit -m "Suma"','git switch main','git commit -m "Stopka"','git merge koszyk'];
+  const panel=new GraphPanel($('#demoBody'),'local'); let s=newState(), i=0;
+  panel.update(s,{emptyText:'Tu za chwilę pojawi się historia…'});
+  const tick=()=>{
+    if(!$('#demoBody')) return;
+    if(i>=seq.length){ s=newState(); i=0; panel.shown=null; panel.update(s,{emptyText:'Od nowa…'}); $('#demoCap').innerHTML='&nbsp;'; heroTimer=setTimeout(tick,900); return; }
+    const r=run(s,seq[i++]); $('#demoCap').innerHTML=`<b>$</b> ${esc(r.line)}`; panel.update(s);
+    heroTimer=setTimeout(tick,i>=seq.length?3200:1500);
+  };
+  heroTimer=setTimeout(tick,600);
+}
+
+/* ============================== LEKCJA ============================== */
+function panelsHTML(list,toSb){
+  const team=list.includes('peer');
+  const title={areas:'Trzy miejsca na plik',local:team?'Ty · twój laptop':'Twoje repozytorium',remote:'GitHub · origin',peer:'Aleksandra · jej laptop'};
+  const icon={areas:'<svg width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="2" width="3" height="10" rx="1" fill="var(--l3)"/><rect x="5.5" y="2" width="3" height="10" rx="1" fill="var(--l1)"/><rect x="10" y="2" width="3" height="10" rx="1" fill="var(--l0)"/></svg>',
+    local:'<svg width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="2" width="12" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 12.5h6" stroke="currentColor" stroke-width="1.5"/></svg>',
+    remote:'<svg width="14" height="14" viewBox="0 0 14 14"><path d="M4 11h6.5a2.5 2.5 0 0 0 .3-5 3.5 3.5 0 0 0-6.7-.6A2.8 2.8 0 0 0 4 11z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+    peer:'<svg width="14" height="14" viewBox="0 0 14 14"><rect x="1" y="2" width="12" height="8" rx="1.5" fill="none" stroke="var(--l2)" stroke-width="1.5"/><path d="M4 12.5h6" stroke="var(--l2)" stroke-width="1.5"/></svg>'};
+  const g=list.filter(p=>p!=='areas'); const hasAreas=list.includes('areas');
+  return `${hasAreas?`<div class="panel"><div class="ptitle">${icon.areas}${title.areas}</div><div class="pbody" data-p="areas"></div></div>`:''}
+    <div class="panels ${g.length>2?'three':g.length>1?'two':''}">${g.map(p=>`<div class="panel"><div class="ptitle">${icon[p]}${title[p]}</div><div class="pbody" data-p="${p}"></div>${p==='remote'?'<div class="prlist" data-p="prs" hidden></div>':''}</div>`).join('')}</div>
+    <div class="legend"><span><i></i>commit</span><span><i class="m"></i>merge commit</span><span><i class="g"></i>osierocony commit</span><span><i class="t"></i>zakładka zdalnej gałęzi</span><span>Najedź na kropkę, żeby zobaczyć szczegóły.</span>${toSb?'<button class="to-sb" id="toSb" title="Przenieś bieżący stan do piaskownicy i pisz własne polecenia">Ćwicz dalej w piaskownicy →</button>':''}</div>`;
+}
+function makePanels(root,list){
+  const P={};
+  root.querySelectorAll('[data-p]').forEach(el=>{const p=el.dataset.p; P[p]=p==='areas'?new AreasPanel(el):p==='prs'?new PrPanel(el):new GraphPanel(el,p);});
+  return P;
+}
+function updatePanels(P,s,opt){
+  for(const [k,p] of Object.entries(P)){
+    const emptyText = k==='peer' ? 'Aleksandra nie ma jeszcze kopii repozytorium.<br>Wpisz w jej terminalu <code>git clone</code>.' : k==='local' && !s.local.cloned ? 'Nie masz jeszcze kopii tego repozytorium.<br>Pojawi się po <code>git clone</code>.' : k==='remote'&&!s.remote?'Brak zdalnego repozytorium. Dodaj je: <code>git remote add origin https://github.com/ty/projekt.git</code>':'';
+    p.update(s,{...opt,emptyText});
+  }
+}
+function termLines(log,fresh){
+  if(!log.length) return `<div class="tl idle"># Ten krok niczego nie uruchamia. Przeczytaj opis obok.</div>`;
+  return log.filter(r=>r.kind!=='skip').map((r,i)=>{
+    const st=fresh?` style="animation-delay:${i*0.12}s"`:''; const nw=fresh?' new':'';
+    if(r.kind==='note'&&!r.line.startsWith('git')) return `<div class="tl note${nw}"${st}>${esc(r.out)}</div>`;
+    return `<div class="tl${nw}"${st}><span class="pr${r.who==='ola'?' ola':''}">${esc(r.prompt)}</span> <span class="cm">${esc(r.line)}</span></div>`+(r.out?`<div class="tl ${r.kind==='err'?'err':'out'}${nw}"${st}>${esc(r.out)}</div>`:'<div class="tl out"></div>');
+  }).join('');
+}
+function renderLesson(ch){
+  const idx=CH.indexOf(ch);
+  const stepKey='step:'+ch.id; let step=Math.min(store.get(stepKey,0),ch.steps.length-1);
+  $('#main').innerHTML=`<section class="lesson">
+    <div class="lhead"><p class="eyebrow">${groupOf(ch.id)} · rozdział ${idx+1} z ${ALL.length}</p><h1>${ch.title}</h1><p class="lead">${ch.lead}</p></div>
+    <div class="stage" id="stage">${panelsHTML(ch.panels,true)}</div>
+    <div class="narr">
+      <article class="stept" id="stept"></article>
+      <div class="term" aria-live="polite"><div class="term-h"><i></i><i></i><i></i><span>terminal</span></div><div class="term-b" id="termb"></div></div>
+    </div></section>`;
+  const P=makePanels($('#stage'),ch.panels);
+  let first=true;
+  const show=(k,dir)=>{
+    step=Math.max(0,Math.min(ch.steps.length-1,k)); store.set(stepKey,step);
+    const {s,log}=buildState(ch,step); const st=ch.steps[step];
+    updatePanels(P,s,{animate:!first});
+    $('#termb').innerHTML=termLines(log,!first); $('#termb').scrollTop=0;
+    const last=step===ch.steps.length-1; const nextCh=ALL[idx+1];
+    $('#stept').innerHTML=`<p class="stepnum">KROK ${step+1} / ${ch.steps.length}</p><h2>${st.t}</h2><div class="body">${st.b}</div>
+      ${st.quiz?quizHTML(st.quiz):''}
+      <div class="ctrl"><button class="btn ghost" id="prev" ${step===0?'disabled':''}>← Wstecz</button>
+        <div class="dots">${ch.steps.map((_,i)=>`<button aria-label="Krok ${i+1}" class="${i===step?'on':i<step?'past':''}" data-i="${i}"></button>`).join('')}</div>
+        <span class="sp"></span>
+        ${last?(nextCh?`<a class="btn" href="#${nextCh.id}">${nextCh.title} →</a>`:''):`<button class="btn" id="next">Dalej →</button>`}
+      </div><p class="kbd-hint">Strzałki ← → też działają.</p>`;
+    $('#prev').onclick=()=>show(step-1,-1);
+    const nb=$('#next'); if(nb) nb.onclick=()=>show(step+1,1);
+    document.querySelectorAll('.dots button').forEach(b=>b.onclick=()=>show(+b.dataset.i));
+    if(st.quiz) bindQuiz(st.quiz,()=>markDone(ch.id));
+    $('#toSb').onclick=()=>{ const c=ensureTeam(structuredClone(s)); c.mode='sandbox'; sandboxState=c; sandboxLog={ty:[{kind:'note',line:'',out:`# Wczytano stan z rozdziału „${ch.title}”, krok ${step+1}. Pisz dalej własne polecenia.`}],ola:[]}; saveSandbox(); location.hash='piaskownica'; };
+    if(dir&&first===false){ const r=$('#stage').getBoundingClientRect(); if(r.top<0) $('#stage').scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'}); }
+    first=false;
+  };
+  show(step);
+  document.onkeydown=e=>{ if(e.target.closest('input,textarea'))return; if(e.key==='ArrowRight'&&step<ch.steps.length-1){show(step+1,1);} if(e.key==='ArrowLeft'&&step>0){show(step-1,-1);} };
+}
+function quizHTML(q){return `<div class="quiz" id="quiz"><h3>Sprawdź się</h3><p class="q">${q.q}</p><div class="opts">${q.o.map((o,i)=>`<button data-i="${i}">${o}</button>`).join('')}</div><p class="why" id="why" hidden></p></div>`;}
+function bindQuiz(q,onOk){
+  document.querySelectorAll('#quiz .opts button').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.i; const ok=i===q.a;
+    b.classList.add(ok?'good':'badc');
+    const w=$('#why'); w.hidden=false; w.innerHTML=ok?`<b>Dobrze.</b> ${q.why}`:'Jeszcze nie. Spróbuj innej odpowiedzi.';
+    if(ok){ document.querySelectorAll('#quiz .opts button').forEach(x=>x.disabled=true); onOk(); }
+  });
+}
+
+/* ============================== PIASKOWNICA ============================== */
+let sandboxState=null, sandboxLog={ty:[],ola:[]};
+function ensureTeam(s){ s.prs=s.prs||[]; s.peerFiles=s.peerFiles||{}; s.me='ty'; if(!s.peer) s.peer=newLocal(false); return s; }
+function freshSandbox(){
+  const s=newState('sandbox'); run(s,'@remote-init projekt'); run(s,'@remote-commit "Pierwszy commit" Ty'); run(s,'git clone x'); run(s,'ola: git clone x');
+  s.local.reflog=[{id:headId(s),action:'clone: from github.com:zespol/projekt.git'}]; s.peer.reflog=[{id:headId(s),action:'clone: from github.com:zespol/projekt.git'}];
+  return s;
+}
+function saveSandbox(){store.set('sandbox2',{s:sandboxState,log:{ty:sandboxLog.ty.slice(-80),ola:sandboxLog.ola.slice(-80)}});}
+function loadSandbox(){ if(sandboxState) return; const d=store.get('sandbox2',null);
+  if(d&&d.s&&d.s.local){sandboxState=ensureTeam(d.s); sandboxLog={ty:(d.log&&d.log.ty)||[],ola:(d.log&&d.log.ola)||[]};} else {sandboxState=freshSandbox(); sandboxLog={ty:[],ola:[]};} }
+const byAuthor=(s,name,id)=>[...anc(s,id)].some(x=>s.commits[x].author===name&&s.commits[x].parents.length<2);
+const TASKS=[
+  {t:'Jako Aleksandra zrób commit i push na main, a potem ściągnij go do siebie.',ok:s=>!!s.local.branches.main&&byAuthor(s,'Aleksandra',s.local.branches.main),
+   h:[['ola','git switch main'],['ola','git commit -m "Cennik"'],['ola','git push'],['ty','git switch main'],['ty','git pull']],n:'Jeśli push Aleksandry zostanie odrzucony, niech najpierw zrobi git pull.'},
+  {t:'Utwórz gałąź, wypchnij ją i otwórz pull request (gh pr create).',ok:s=>(s.prs||[]).some(p=>p.author==='ty'),
+   h:[['ty','git switch main'],['ty','git switch -c funkcja'],['ty','git commit -m "Nowa funkcja"'],['ty','git push -u origin funkcja'],['ty','gh pr create --title "Nowa funkcja"']],n:'Jeśli gałąź funkcja już istnieje, wybierz inną nazwę.'},
+  {t:'Jako Aleksandra pobierz twój PR do siebie (gh pr checkout) i poproś o zmiany.',ok:s=>!!s.flags.reviewerCheckout&&(s.prs||[]).some(p=>p.reviews.some(r=>r.by==='ola'&&r.state==='CHANGES_REQUESTED')),
+   h:[['ola','gh pr list'],['ola','gh pr checkout 1'],['ola','gh pr review 1 --request-changes -b "Popraw opis"']],n:'Numer PR odczytasz z gh pr list albo z karty pod GitHubem.'},
+  {t:'Wypchnij poprawkę, a potem zatwierdź PR jako Aleksandra.',ok:s=>(s.prs||[]).some(p=>p.reviews.some(r=>r.by==='ola'&&r.state==='APPROVED')),
+   h:[['ty','git switch funkcja'],['ty','git commit -m "Poprawka"'],['ty','git push'],['ola','git pull'],['ola','gh pr review 1 --approve']],n:'Poprawkę robisz na tej samej gałęzi. PR zaktualizuje się sam.'},
+  {t:'Scal PR i zsynchronizuj swoje main (git pull).',ok:s=>(s.prs||[]).some(p=>p.status==='merged'&&s.local.branches.main&&anc(s,s.local.branches.main).has(p.mergeId)),
+   h:[['ola','gh pr merge 1 --merge --delete-branch'],['ty','git switch main'],['ty','git pull'],['ty','git branch -d funkcja'],['ty','git fetch --prune']],n:'Scalić można tylko PR zatwierdzony przez kogoś innego niż autor.'},
+  {t:'Przenieś dowolną gałąź na koniec main poleceniem rebase.',ok:s=>!!s.flags.rebased,
+   h:[['ty','git switch main'],['ty','git switch -c test'],['ty','git commit -m "Zmiana na gałęzi"'],['ty','git switch main'],['ty','git commit -m "Zmiana na main"'],['ty','git switch test'],['ty','git rebase main']],n:'Na main musi być commit, którego gałąź nie ma. Inaczej Git odpowie „up to date”.'},
+  {t:'Cofnij dowolny commit bezpiecznie, bez przepisywania historii.',ok:s=>!!s.flags.reverted,
+   h:[['ty','git switch main'],['ty','git commit -m "Pomyłka"'],['ty','git revert HEAD']],n:'Symulator nie cofa merge commitów, więc wskaż zwykły commit.'},
+];
+const CHEAT=['git status','git log --oneline --all','git commit -m "Opis"','git push','git pull','git pull --rebase','git switch -c funkcja','git switch main','git push -u origin funkcja','gh pr create','gh pr list','gh pr view 1','gh pr checkout 1','gh pr review 1 --request-changes -b "Popraw to"','gh pr review 1 --approve','gh pr merge 1 --merge --delete-branch','git fetch --prune','git branch -d funkcja','git merge funkcja','git rebase main','git revert HEAD','git reset --hard HEAD~1','git reflog','edit plik.txt','git add .','pomoc','reset'];
+const HELP=`Obsługiwane polecenia (symulacja):
+  git status | log [--all] | add <plik|.> | restore [--staged] <plik>
+  git commit [-a] [-m "opis"] | branch [-d] [nazwa] | switch [-c] <gałąź>
+  git checkout [-b] <gałąź|commit> | merge <ref> | rebase <ref> | cherry-pick <ref>
+  git reset [--soft|--mixed|--hard] <ref> | revert <ref> | reflog
+  git clone <url> | push [-u origin <gałąź>] | fetch [--prune] | pull [--rebase]
+GitHub CLI (pull requesty):
+  gh pr create [--title "..."] [--body "..."]   gh pr list   gh pr view [nr]
+  gh pr checkout <nr>   gh pr review <nr> --approve | --request-changes -b "..." | --comment -b "..."
+  gh pr merge <nr> [--merge|--squash] [--delete-branch]   gh pr close <nr>
+Dodatkowe:
+  edit <plik>   udaje zmianę pliku      clear   czyści ten terminal      reset   zaczyna od nowa
+Lewy terminal jest twój, prawy należy do Aleksandry. Gałąź main jest chroniona:
+PR scalisz dopiero po zatwierdzeniu przez drugą osobę.
+Referencje: nazwy gałęzi, origin/main, HEAD, HEAD~2, HEAD^, ORIG_HEAD, skrót hasha.`;
+function renderSandbox(){
+  loadSandbox();
+  const termHTML=(who,label)=>`<div class="term sbterm ${who}" data-who="${who}"><div class="term-h"><i></i><i></i><i></i><span>${label}</span></div><div class="term-b"></div>
+    <form class="tform"><span class="pr${who==='ola'?' ola':''}"></span><input id="tin-${who}" aria-label="Polecenie: ${label}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${who==='ola'?'gh pr list':'git status'}"></form></div>`;
+  $('#main').innerHTML=`<section class="lesson">
+    <div class="lhead"><p class="eyebrow">Praktyka · rozdział ${ALL.indexOf(SANDBOX)+1} z ${ALL.length}</p><h1>Piaskownica</h1><p class="lead">Masz dwa terminale: swój i Aleksandry. Oboje macie sklonowane to samo repozytorium z GitHuba. Wpisuj polecenia za siebie i za nią: otwieraj pull requesty, recenzuj je w jej imieniu i obserwuj, jak zmiany przechodzą między trzema repozytoriami.</p></div>
+    <div class="stage" id="stage">${panelsHTML(['local','remote','peer'])}</div>
+    <div class="terms">${termHTML('ty','Ty · terminal')}${termHTML('ola','Aleksandra · terminal')}</div>
+    <div class="sbgrid">
+      <div class="card taskcard" id="taskcard" aria-live="polite"></div>
+      <div class="cheatwrap"><button class="btn ghost" id="cheatBtn" aria-expanded="false" aria-controls="cheatBox">Pokaż ściągę</button>
+        <div class="card" id="cheatBox" hidden><h3>Ściąga</h3><p class="small" style="margin:0 0 8px">Kliknij polecenie, żeby wpisać je do ostatnio używanego terminala (podświetlonego).</p><div class="cheat">${CHEAT.map(c=>`<button data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+        <p class="small" style="margin:12px 0 0">To symulator: pliki nie mają treści, a commit bez zmian w poczekalni udaje jedną zmienioną linijkę. Ruch gałęzi i zasady GitHuba działają jak naprawdę. Wpisz <code>pomoc</code>, żeby zobaczyć wszystkie polecenia.</p></div></div>
+    </div></section>`;
+  const P=makePanels($('#stage'),['local','remote','peer']);
+  const T={}; let active='ty'; const openHints=new Set();
+  const doneNow=()=>TASKS.map(t=>t.ok(sandboxState));
+  let curTask=Math.max(0,doneNow().indexOf(false)); if(doneNow().every(Boolean)) curTask=TASKS.length-1;
+  let prevDone=doneNow(), justDone=-1;
+  const bulb='<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a4.5 4.5 0 0 0-2.6 8.2c.4.3.6.7.6 1.2V12h4v-1.1c0-.5.2-.9.6-1.2A4.5 4.5 0 0 0 8 1.5z" fill="currentColor" opacity=".9"/><path d="M6 13.5h4M6.7 15h2.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
+  const renderTasks=()=>{
+    const d=doneNow(); d.forEach((v,i)=>{ if(v&&!prevDone[i]) justDone=i; }); prevDone=d;
+    const N=TASKS.length, nDone=d.filter(Boolean).length, t=TASKS[curTask], ok=d[curTask], open=openHints.has(curTask);
+    const next=d.findIndex((v,i)=>!v&&i>curTask), anyNext=next>=0?next:d.indexOf(false);
+    $('#taskcard').innerHTML=`<div class="tc-top"><h3>Zadanie ${curTask+1} z ${N}</h3><span class="small">Ukończone: ${nDone} z ${N}</span></div>
+      <div class="tc-dots">${TASKS.map((_,i)=>`<button class="${d[i]?'ok':''}${i===curTask?' on':''}" data-i="${i}" aria-label="Zadanie ${i+1}${d[i]?', ukończone':''}"></button>`).join('')}</div>
+      <div class="tc-main"><p class="tc-text">${t.t}</p><button class="hintbtn${open?' on':''}" id="hintBtn" aria-expanded="${open}" aria-label="Pokaż podpowiedź" title="Podpowiedź">${bulb}</button></div>
+      ${ok?`<p class="tc-ok">${justDone===curTask?'Brawo, zadanie zaliczone!':'To zadanie jest już zaliczone.'}${nDone===N?' Wszystkie zadania gotowe.':''}</p>`:''}
+      ${open?`<div class="hint" role="note"><p class="hint-h">Wpisz po kolei (kliknij polecenie, żeby wstawić je do terminala):</p><div class="hint-l">${t.h.map(([w,c])=>`<button data-who="${w}" data-c="${esc(c)}"><span class="hw ${w}">${w==='ola'?'Aleksandra':'Ty'}</span><code>${esc(c)}</code></button>`).join('')}</div>${t.n?`<p class="hint-n">${t.n}</p>`:''}</div>`:''}
+      <div class="tc-nav"><button class="btn ghost" id="tPrev" ${curTask===0?'disabled':''}>← Poprzednie</button><span class="sp"></span>
+        ${curTask<N-1?`<button class="btn${ok?'':' ghost'}" id="tNext">${ok&&anyNext>curTask?'Następne zadanie →':'Następne →'}</button>`:''}</div>`;
+    const go=i=>{curTask=i; justDone=-1; renderTasks();};
+    $('#tPrev').onclick=()=>go(curTask-1);
+    const nb=$('#tNext'); if(nb) nb.onclick=()=>go(ok&&next>curTask?next:curTask+1);
+    document.querySelectorAll('.tc-dots button').forEach(b=>b.onclick=()=>go(+b.dataset.i));
+    $('#hintBtn').onclick=()=>{openHints.has(curTask)?openHints.delete(curTask):openHints.add(curTask); renderTasks();};
+    document.querySelectorAll('.hint-l button').forEach(b=>b.onclick=()=>{const w=b.dataset.who; T[w].inp.value=b.dataset.c; T[w].inp.focus();});
+  };
+  document.querySelectorAll('.sbterm').forEach(el=>{const who=el.dataset.who; T[who]={el,body:el.querySelector('.term-b'),pr:el.querySelector('.tform .pr'),inp:el.querySelector('input'),hist:[],hi:0};});
+  const setActive=who=>{active=who; for(const k in T) T[k].el.classList.toggle('active',k===who);};
+  const lineHTML=(r,nw)=>{
+    if(r.kind==='note'&&!(r.line||'').startsWith('git')) return `<div class="tl note${nw}">${esc(r.out)}</div>`;
+    return `<div class="tl"><span class="pr${r.who==='ola'?' ola':''}">${esc(r.prompt)}</span> <span class="cm">${esc(r.line)}</span></div>`+(r.out?`<div class="tl ${r.kind==='err'?'err':'out'}${nw}">${esc(r.out)}</div>`:'<div class="tl out"></div>');
+  };
+  const paint=(freshWho)=>{
+    for(const who of ['ty','ola']){ const t=T[who], log=sandboxLog[who];
+      t.body.innerHTML=(log.length?'':`<div class="tl idle">${who==='ty'?'Twój terminal. Wpisz polecenie albo kliknij coś ze ściągi.':'Terminal Aleksandry. Wszystko, co tu wpiszesz, wykona ona na swoim laptopie.'}</div>`)+log.map((r,i)=>lineHTML(r,(freshWho===who&&i===log.length-1)?' new':'')).join('');
+      t.body.scrollTop=t.body.scrollHeight; t.pr.textContent=withUser(sandboxState,who,()=>promptOf(sandboxState)); }
+    renderTasks();
+  };
+  const exec=(who,line)=>{
+    line=line.trim(); if(!line) return; const t=T[who];
+    t.hist.push(line); t.hi=t.hist.length;
+    if(line==='clear'){sandboxLog[who]=[];paint();saveSandbox();return;}
+    if(line==='reset'){sandboxState=freshSandbox();sandboxLog={ty:[{kind:'note',line:'',out:'# Zaczynacie od nowa: świeże klony z jednym commitem.'}],ola:[]};for(const k in P) if(P[k].shown!==undefined) P[k].shown=null;updatePanels(P,sandboxState,{animate:false});paint();saveSandbox();return;}
+    if(line==='pomoc'||line==='help'||line==='git help'){sandboxLog[who].push({kind:'out',who,prompt:withUser(sandboxState,who,()=>promptOf(sandboxState)),line,out:HELP});paint(who);return;}
+    const r=run(sandboxState,(who==='ola'?'ola: ':'ty: ')+line.replace(/^(ola|aleksandra|ty):\s*/i,'')); if(r.kind==='skip') return;
+    sandboxLog[who].push(r); updatePanels(P,sandboxState,{animate:true}); paint(who); saveSandbox();
+  };
+  for(const who in T){ const t=T[who];
+    t.el.querySelector('form').onsubmit=e=>{e.preventDefault(); exec(who,t.inp.value); t.inp.value='';};
+    t.inp.onfocus=()=>setActive(who);
+    t.inp.onkeydown=e=>{ if(e.key==='ArrowUp'&&t.hist.length){t.hi=Math.max(0,t.hi-1);t.inp.value=t.hist[t.hi];e.preventDefault();} if(e.key==='ArrowDown'){t.hi=Math.min(t.hist.length,t.hi+1);t.inp.value=t.hist[t.hi]||'';e.preventDefault();} };
+  }
+  document.querySelectorAll('.cheat button').forEach(b=>b.onclick=()=>{const inp=T[active].inp; inp.value=b.dataset.c; inp.focus(); for(const w of ['Opis','Popraw to']){const i=b.dataset.c.indexOf(w); if(i>=0){inp.setSelectionRange(i,i+w.length);break;}} });
+  $('#cheatBtn').onclick=()=>{const box=$('#cheatBox'); box.hidden=!box.hidden; $('#cheatBtn').textContent=box.hidden?'Pokaż ściągę':'Ukryj ściągę'; $('#cheatBtn').setAttribute('aria-expanded',String(!box.hidden));};
+  setActive('ty'); updatePanels(P,sandboxState,{animate:false}); paint();
+}
+
+route();
+</script>
+
+</body>
+</html>
