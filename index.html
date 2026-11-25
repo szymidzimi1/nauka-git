@@ -223,6 +223,7 @@ table.cmp th{font-family:var(--f-mono);font-size:calc(12px * var(--fs))}
 .tl .cm{color:var(--term-cmd);font-weight:600}
 .tl.out{color:var(--term-fg);opacity:.85;margin-bottom:8px}
 .tl.err{color:var(--term-err);margin-bottom:8px}
+.d-add{color:var(--term-ok)}.d-del{color:var(--term-err)}.d-hunk{color:#6cb6ff}.d-meta{color:var(--term-cmd);font-weight:600}
 .tl.note{color:var(--term-dim);font-style:italic;margin-bottom:8px}
 .tl.idle{color:var(--term-dim)}
 .tl.new{animation:tin .35s ease-out both}
@@ -312,7 +313,7 @@ table.cmp th{font-family:var(--f-mono);font-size:calc(12px * var(--fs))}
 .small{font-size:calc(12px * var(--fs));color:var(--muted)}
 
 @media (prefers-reduced-motion:reduce){.tl.new{animation:none}}
-.simnote{margin:14px 0 0;padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--ok);border-radius:8px;background:var(--surface-2)}.simnote b{display:block;margin-bottom:4px}.simnote p{margin:0}
+.simnote{margin:14px 0 0;padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--ok);border-radius:8px;background:var(--surface-2)}.simnote b{display:block;margin-bottom:4px}.simnote p{margin:0}.dp,.dm{font-family:var(--f-mono);font-weight:700}.dp{color:var(--ok)}.dm{color:var(--bad)}
 
 /* Wygląd: motyw i tło */
 .look{display:flex;align-items:center;gap:8px;flex:none}
@@ -368,6 +369,11 @@ function mk(s,parents,msg,lane,author){
   return id;
 }
 function headId(s){const h=s.local.head; return h.b ? s.local.branches[h.b] : h.id;}
+function applySnap(s,target){ // czyste pliki przyjmują wersje z migawki, zmienione zachowują twoje zmiany
+  if(!s.files||!Object.keys(s.files).length) return;
+  for(const n of new Set([...Object.keys(s.files),...Object.keys(target)])){ const v=n in target?target[n]:null; const f=s.files[n]||(s.files[n]={head:null,idx:null,wd:null,max:0});
+    const clean=f.wd===f.idx&&f.idx===f.head; if(clean){f.head=f.idx=f.wd=v;} else f.head=v; if(v!==null&&v>f.max) f.max=v; } }
+function snapAt(s,id){ return (id&&s.commits[id]&&s.commits[id].snap)||{}; }
 function setHead(s,id,action){const h=s.local.head; if(h.b) s.local.branches[h.b]=id; else h.id=id; s.local.reflog.push({id,action});}
 function anc(s,id){const out=new Set();const st=id?[id]:[];while(st.length){const c=st.pop();if(!c||out.has(c)||!s.commits[c])continue;out.add(c);st.push(...s.commits[c].parents);}return out;}
 function curLane(s){const h=s.local.head; if(h.b) return laneOf(s,h.b); const p=headId(s); return p? s.commits[p].lane:0;}
@@ -403,6 +409,59 @@ function promptOf(s){
   const h=s.local.head; const where=h.b? h.b : (headId(s)||'').slice(0,7);
   return `${u}~/${s.project} (${where}) $`;
 }
+
+/* ---------- git diff: treść pliku w wersji v to kolejne dopisane linijki ---------- */
+function fileLines(n,v){ if(v===null||v===undefined) return null; const L=[`Treść pliku ${n}`]; for(let i=2;i<=v;i++) L.push(`Twoja zmiana nr ${i-1}`); return L; }
+function blobId(n,v){ return v===null||v===undefined?'0000000':fnv(n+'@'+v).toString(16).padStart(8,'0').slice(0,7); }
+function snapOf(s,id){ if(!id) return {}; if(id===headId(s)&&!s.commits[id].snap){ const o={}; for(const [n,f] of Object.entries(s.files)) if(f.head!==null) o[n]=f.head; return o; } return Object.assign({},s.commits[id].snap||{}); }
+function virtLines(s,id){ // commity bez zmian w plikach udają jedną zmienioną linijkę w projekt.txt
+  if(!id) return null; const ids=[...anc(s,id)].map(x=>s.commits[x]).sort((a,b)=>a.idx-b.idx); const out=[];
+  for(const c of ids){ if(c.parents.length>1) continue; const p=c.parents[0]?s.commits[c.parents[0]]:null;
+    if(JSON.stringify(c.snap||{})===JSON.stringify((p&&p.snap)||{})) out.push(`Zmiana z commita „${c.msg}”`); }
+  return out.length?out:null; }
+function lcsOps(a,b){ a=a||[]; b=b||[]; const n=a.length,m=b.length; const T=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--) T[i][j]=a[i]===b[j]?T[i+1][j+1]+1:Math.max(T[i+1][j],T[i][j+1]);
+  const ops=[]; let i=0,j=0; while(i<n||j<m){ if(i<n&&j<m&&a[i]===b[j]){ops.push([' ',a[i]]);i++;j++;} else if(i<n&&(j>=m||T[i+1][j]>=T[i][j+1])){ops.push(['-',a[i]]);i++;} else {ops.push(['+',b[j]]);j++;} }
+  return ops; }
+function hunks(ops){ const out=[]; const ch=ops.map((o,k)=>o[0]!==' '?k:-1).filter(k=>k>=0); if(!ch.length) return out;
+  let groups=[], st=Math.max(0,ch[0]-3), en=Math.min(ops.length-1,ch[0]+3);
+  for(const k of ch.slice(1)){ if(k-3<=en+1) en=Math.min(ops.length-1,k+3); else { groups.push([st,en]); st=Math.max(0,k-3); en=Math.min(ops.length-1,k+3);} } groups.push([st,en]);
+  for(const [g0,g1] of groups){ let a0=1,b0=1; for(let k=0;k<g0;k++){ if(ops[k][0]!=='+') a0++; if(ops[k][0]!=='-') b0++; }
+    const seg=ops.slice(g0,g1+1); const la=seg.filter(o=>o[0]!=='+').length, lb=seg.filter(o=>o[0]!=='-').length;
+    out.push(`@@ -${la?a0:0},${la} +${lb?b0:0},${lb} @@`); seg.forEach(o=>out.push(o[0]+o[1])); }
+  return out; }
+function diffCmd(s,a){
+  const staged=a.includes('--staged')||a.includes('--cached'), stat=a.includes('--stat'), names=a.includes('--name-only');
+  const dd=a.indexOf('--'); const paths=dd>=0?a.slice(dd+1):[]; const rest=(dd>=0?a.slice(0,dd):a).filter(x=>!x.startsWith('-'));
+  let refs=[]; for(const x of rest){ if(x.includes('..')){ const [l,r]=x.split(/\.\.\.?/); refs.push(l||'HEAD',r||'HEAD'); } else if(resolve(s,x)) refs.push(x); else if(s.files[x]) paths.push(x); else return {err:`fatal: ambiguous argument '${x}': unknown revision or path not in the working tree.`}; }
+  if(refs.length>2) return {err:'error: Symulator porównuje najwyżej dwa commity naraz.'};
+  if(!headId(s)&&(staged||refs.length)) return {err:"fatal: bad revision 'HEAD'"};
+  let A={},B={},va=null,vb=null;
+  const wd=()=>{const o={}; for(const [n,f] of Object.entries(s.files)) if(f.head!==null||f.idx!==null) o[n]=f.wd; return o;};
+  const idx=()=>{const o={}; for(const [n,f] of Object.entries(s.files)) if(f.idx!==null) o[n]=f.idx; return o;};
+  if(refs.length===2){ const x=resolve(s,refs[0]), y=resolve(s,refs[1]); A=snapOf(s,x); B=snapOf(s,y); va=virtLines(s,x); vb=virtLines(s,y); }
+  else if(refs.length===1){ A=snapOf(s,resolve(s,refs[0])); B=staged?idx():wd(); }
+  else if(staged){ A=snapOf(s,headId(s)); B=idx(); }
+  else { A=idx(); for(const [n,f] of Object.entries(s.files)) if(f.idx===null&&f.head!==null) A[n]=f.head; B=wd(); }
+  const files=[...new Set([...Object.keys(A),...Object.keys(B)])].filter(n=>!paths.length||paths.includes(n)).sort();
+  const parts=[], st=[]; let ins=0,del=0;
+  const one=(n,la,lb,ha,hb)=>{ const ops=lcsOps(la,lb); const h=hunks(ops); if(!h.length) return;
+    const p=ops.filter(o=>o[0]==='+').length, m=ops.filter(o=>o[0]==='-').length; ins+=p; del+=m; st.push([n,p,m]);
+    const hd=[`diff --git a/${n} b/${n}`]; if(la===null) hd.push('new file mode 100644'); if(lb===null) hd.push('deleted file mode 100644');
+    hd.push(`index ${ha}..${hb}${la!==null&&lb!==null?' 100644':''}`, la===null?'--- /dev/null':`--- a/${n}`, lb===null?'+++ /dev/null':`+++ b/${n}`);
+    parts.push([...hd,...h].join('\n')); };
+  for(const n of files){ const x=A[n]===undefined?null:A[n], y=B[n]===undefined?null:B[n]; if(x===y) continue; one(n,fileLines(n,x),fileLines(n,y),blobId(n,x),blobId(n,y)); }
+  if(refs.length===2&&!paths.length&&JSON.stringify(va)!==JSON.stringify(vb)) one('projekt.txt',va,vb,va?fnv(va.join('\n')).toString(16).padStart(8,'0').slice(0,7):'0000000',vb?fnv(vb.join('\n')).toString(16).padStart(8,'0').slice(0,7):'0000000');
+  if(parts.length){ s.flags.diffUsed=true; if(staged) s.flags.diffStaged=true; if(refs.length===2) s.flags.diffRefs=true; }
+  if(names) return {out:st.map(x=>x[0]).join('\n')};
+  if(stat){ if(!st.length) return {out:''}; const w=Math.max(...st.map(x=>x[0].length));
+    return {out:st.map(([n,p,m])=>` ${n.padEnd(w)} | ${p+m} ${'+'.repeat(p)}${'-'.repeat(m)}`).join('\n')+`\n ${st.length} file${st.length>1?'s':''} changed${ins?`, ${ins} insertion${ins>1?'s':''}(+)`:''}${del?`, ${del} deletion${del>1?'s':''}(-)`:''}`}; }
+  return {out:parts.join('\n')}; }
+function diffHTML(out){ return String(out).split('\n').map(l=>{ const e=esc(l);
+  if(/^(diff --git|index |--- |\+\+\+ |new file|deleted file)/.test(l)) return `<span class="d-meta">${e}</span>`;
+  if(l.startsWith('@@')) return `<span class="d-hunk">${e}</span>`; if(l.startsWith('+')) return `<span class="d-add">${e}</span>`;
+  if(l.startsWith('-')) return `<span class="d-del">${e}</span>`; return e; }).join('\n'); }
+const outHTML=r=>/(^|\s|:)\s*git diff\b/.test(r.line||'')&&r.kind!=='err'?diffHTML(r.out):esc(r.out);
 function stagedFiles(s){return Object.entries(s.files).filter(([n,f])=>f.idx!==null&&f.idx!==f.head).map(([n])=>n);}
 
 const TEAM_MSGS=['Nowe zdjęcia','Poprawka w koszyku','Tłumaczenie na angielski','Szybsze ładowanie','Nowy kolor przycisku','Literówka w stopce'];
@@ -577,6 +636,7 @@ const GIT={
     const t=resolve(s,a[0]); if(!t) return {err:`fatal: bad revision '${a[0]||''}'`};
     const c=s.commits[t]; if(c.parents.length>1) return {err:`error: commit ${t} is a merge but no -m option was given.`};
     if(anc(s,headId(s)).has(t)) return {err:`The previous cherry-pick is now empty, possibly due to conflict resolution.\n(commit ${t} jest już w historii bieżącej gałęzi)`};
+    { const cs=snapAt(s,t), ps=snapAt(s,c.parents[0]), M=Object.assign({},snapAt(s,headId(s))); for(const n of new Set([...Object.keys(cs),...Object.keys(ps)])) if(cs[n]!==ps[n]){ if(n in cs) M[n]=cs[n]; else delete M[n]; } if(Object.keys(s.files).length) applySnap(s,M); }
     const id=mk(s,[headId(s)],c.msg,curLane(s),c.author); s.local.has[id]=1; setHead(s,id,'cherry-pick: '+c.msg);
     return {out:`[${s.local.head.b||'detached HEAD'} ${id}] ${c.msg}\n 1 file changed`};
   },
@@ -657,7 +717,7 @@ const GIT={
     const hint=(diverged&&cfg===undefined&&!a.includes('--no-rebase'))?'(Uwaga: nowsze wersje Gita przy rozjechanych historiach najpierw pytają o strategię.\nUstawisz ją raz: git config pull.rebase false (merge) albo true (rebase). Symulator domyślnie robi merge.)':null;
     return {out:walkOut([f||null,m.out,hint])};
   },
-  diff(){return {out:'(Symulator nie pokazuje treści plików. Zmiany widać na panelu z trzema miejscami.)'};},
+  diff(s,a){return diffCmd(s,a);},
   '--version'(){return {out:'git version 2.47.1 (symulator)'};},
   help(){return {out:'Wpisz „pomoc”, żeby zobaczyć listę obsługiwanych poleceń.'};},
 };
@@ -667,6 +727,7 @@ function doSwitch(s,a,isCheckout){
   const beforeB=L.head.b, beforeId=headId(s);
   const r=doSwitch0(s,a,isCheckout);
   if(r.err) return r;
+  if(headId(s)!==beforeId&&headId(s)) applySnap(s,snapAt(s,headId(s)));
   if(beforeB!==L.head.b || headId(s)!==beforeId) L.prev=beforeB||beforeId;
   if(!beforeB && beforeId && headId(s)!==beforeId){
     const reach=new Set(); Object.values(L.branches).forEach(x=>anc(s,x).forEach(y=>reach.add(y)));
@@ -705,7 +766,8 @@ function doMerge(s,name,mergeMsg,noff){
   const cur=headId(s); const t=resolve(s,name);
   if(!t) return {err:`merge: ${name} - not something we can merge`};
   if(anc(s,cur).has(t)) return {out:'Already up to date.'};
-  if(anc(s,t).has(cur) && !noff){ setHead(s,t,`merge ${name}: Fast-forward`); return {out:`Updating ${cur}..${t}\nFast-forward`}; }
+  if(anc(s,t).has(cur) && !noff){ setHead(s,t,`merge ${name}: Fast-forward`); applySnap(s,snapAt(s,t)); return {out:`Updating ${cur}..${t}\nFast-forward`}; }
+  { const A=snapAt(s,cur), B=snapAt(s,t), M={}; for(const n of new Set([...Object.keys(A),...Object.keys(B)])) M[n]=Math.max(A[n]??-1,B[n]??-1); applySnap(s,M); }
   const id=mk(s,[cur,t],mergeMsg,curLane(s),me(s)); s.local.has[id]=1; setHead(s,id,`merge ${name}: Merge made by the 'ort' strategy.`); s.flags.merged=true;
   return {out:"Merge made by the 'ort' strategy."};
 }
@@ -983,6 +1045,16 @@ const CH=[
   {t:'Skrót: utwórz i przełącz', c:['git switch -c ciemny-motyw','git commit -m "Ciemny motyw"'], b:`<p><code>git switch -c nazwa</code> tworzy gałąź i od razu się na nią przełącza. To wariant, którego będziesz używać najczęściej.</p>`,
    quiz:{q:'Jesteś na gałęzi logowanie i robisz commit. Co dzieje się z main?',o:['Przesuwa się razem z logowanie','Zostaje w miejscu','Zostaje usunięta'],a:1,why:'Commit przesuwa tylko gałąź, na którą wskazuje HEAD. Pozostałe gałęzie zostają tam, gdzie były.'}}
  ]},
+ {id:'porownanie', title:'Porównywanie zmian', short:'git diff: co zmieniłeś, co wejdzie do commita i czym różnią się gałęzie.', panels:['areas','local'],
+  lead:'Status mówi, które pliki się zmieniły. Diff pokazuje, co dokładnie się w nich zmieniło: linijka po linijce, między dowolnymi dwoma miejscami.',
+  init:['edit index.html','edit style.css','git add .','git commit -m "Start"'], steps:[
+  {t:'Co dokładnie zmieniłem?', c:['edit index.html','git status','git diff'], b:`<p><code>git status</code> mówi tylko, że <code>index.html</code> się zmienił. <code>git diff</code> pokazuje, <b>co</b> się zmieniło.</p><p>Jak czytać wynik: <code>---</code> to stara wersja, <code>+++</code> nowa. Linijki z <span class="dp">+</span> zostały dodane, z <span class="dm">-</span> usunięte, a bez znaku to kontekst, który się nie zmienił. <code>@@ -1,1 +1,2 @@</code> mówi, którego fragmentu pliku dotyczy zmiana.</p><div class="simnote"><b>Jak działa ten symulator</b><p>Pliki nie mają tu prawdziwej treści. Każde <code>edit</code> dopisuje do pliku jedną linijkę „Twoja zmiana nr …”, żeby było co porównywać.</p></div>`},
+  {t:'Diff po git add', c:['git add index.html','git diff','git diff --staged'], b:`<p>Po <code>git add</code> zwykłe <code>git diff</code> nic nie pokazuje. Porównuje katalog roboczy z poczekalnią, a te są teraz takie same.</p><p><code>git diff --staged</code> porównuje poczekalnię z ostatnim commitem, czyli pokazuje dokładnie to, co wejdzie do najbliższego commita. Warto to sprawdzić przed każdym <code>git commit</code>.</p>`},
+  {t:'Zmiany w dwóch miejscach naraz', c:['edit index.html','git diff','git diff --staged','git diff HEAD'], b:`<p>Zmieniasz plik jeszcze raz. Teraz część zmian jest w poczekalni, a część tylko w katalogu roboczym.</p><ul><li><code>git diff</code>: katalog roboczy a poczekalnia (zmiany jeszcze niedodane),</li><li><code>git diff --staged</code>: poczekalnia a ostatni commit,</li><li><code>git diff HEAD</code>: katalog roboczy a ostatni commit, czyli wszystko naraz.</li></ul>`},
+  {t:'Co zmienił commit?', c:['git commit -am "Nowa treść"','git diff HEAD~1 HEAD'], b:`<p>Podajesz dwa commity, a Git porównuje ich migawki. <code>git diff HEAD~1 HEAD</code> pokazuje, co wniósł ostatni commit.</p><p>Kolejność ma znaczenie: zawsze „od pierwszego do drugiego”. Zamiana miejscami odwróci znaki <span class="dp">+</span> i <span class="dm">-</span>.</p>`},
+  {t:'Czym różnią się gałęzie?', c:['git switch -c menu','edit style.css','git commit -am "Menu"','git switch main','git diff main menu','git diff --stat main menu'], b:`<p>Zanim scalisz gałąź, możesz sprawdzić, co wniesie. <code>git diff main menu</code> pokazuje różnice między końcami obu gałęzi.</p><p>Z flagą <code>--stat</code> dostajesz samo podsumowanie: które pliki i ile linijek się zmieniło. To dobry pierwszy rzut oka przy dużych zmianach.</p>`,
+   quiz:{q:'Zrobiłeś git add. Jak zobaczysz zmiany, które wejdą do commita?',o:['git diff','git diff --staged','git status'],a:1,why:'Samo git diff porównuje katalog roboczy z poczekalnią, więc po git add jest puste. git diff --staged porównuje poczekalnię z ostatnim commitem.'}}
+ ]},
  {id:'merge', title:'Scalanie gałęzi', short:'Fast-forward, merge commit i konflikty.', panels:['local'],
   lead:'Kiedy praca na gałęzi jest gotowa, trzeba ją włączyć do main. Git robi to na dwa sposoby, zależnie od kształtu historii.',
   init:['git commit -m "Start"','git switch -c naglowek','git commit -m "Nowy nagłówek"','git switch main'], steps:[
@@ -1077,11 +1149,11 @@ const CH=[
    quiz:{q:'Commit z błędem jest już na GitHubie i inni go pobrali. Czego użyjesz?',o:['git reset --hard','git revert','git restore'],a:1,why:'Polecenie revert dodaje nowy commit i nie przepisuje historii, więc nikomu niczego nie psuje. Po resecie na wspólnej gałęzi twoja historia rozjechałaby się z kopiami innych osób.'}}
  ]},
 ];
-const TASKSPAGE={id:'zadania', title:'Zadania', short:'Siedem zadań w dwóch terminalach, twoim i Aleksandry, z podpowiedziami.'};
+const TASKSPAGE={id:'zadania', title:'Zadania', short:'Osiem zadań w dwóch terminalach, twoim i Aleksandry, z podpowiedziami.'};
 const SANDBOX={id:'piaskownica', title:'Piaskownica', short:'Dwa terminale, twój i Aleksandry, i swobodna praca bez zadań.'};
-const ORDER=['gitgh','obszary','historia','galezie','merge','github','zespol','cofanie','codzien','rebase','poprawki'];
+const ORDER=['gitgh','obszary','historia','galezie','porownanie','merge','github','zespol','cofanie','codzien','rebase','poprawki'];
 CH.sort((a,b)=>ORDER.indexOf(a.id)-ORDER.indexOf(b.id));
-const GROUPS=[{t:'Podstawy',ids:ORDER.slice(0,9)},{t:'Zaawansowane',ids:ORDER.slice(9)},{t:'Praktyka',ids:['zadania','piaskownica','sciaga']}];
+const GROUPS=[{t:'Podstawy',ids:ORDER.slice(0,10)},{t:'Zaawansowane',ids:ORDER.slice(10)},{t:'Praktyka',ids:['zadania','piaskownica','sciaga']}];
 const groupOf=id=>(GROUPS.find(g=>g.ids.includes(id))||{t:''}).t;
 const CHEATSHEET={id:'sciaga', title:'Ściąga', short:'Wszystkie polecenia w jednym miejscu, z wyszukiwarką.'};
 const ALL=[...CH,TASKSPAGE,SANDBOX,CHEATSHEET];
@@ -1101,7 +1173,10 @@ const SHEET=[
   ['git commit -m "opis"','Zapisuje zawartość poczekalni jako nowy commit.'],
   ['git commit -am "opis"','Dodaje zmienione śledzone pliki i od razu robi commit.'],
   ['git commit --amend -m "opis"','Poprawia ostatni commit (nowy hash). Tylko przed wypchnięciem.'],
-  ['git diff','Pokazuje różnice w treści plików.',1]]},
+  ['git diff','Pokazuje zmiany, których jeszcze nie dodałeś do poczekalni.'],
+  ['git diff --staged','Pokazuje, co wejdzie do najbliższego commita.'],
+  ['git diff HEAD~1 HEAD','Pokazuje, co zmienił ostatni commit.'],
+  ['git diff main funkcja','Porównuje dwie gałęzie (dodaj --stat, żeby zobaczyć samo podsumowanie).']]},
  {g:'Historia', r:[
   ['git log --oneline','Historia bieżącej gałęzi, po jednym commicie na linię.'],
   ['git log --oneline --graph --all','Historia wszystkich gałęzi (w prawdziwym Gicie także jako graf).'],
@@ -1310,7 +1385,7 @@ function termLines(log,fresh){
   return log.filter(r=>r.kind!=='skip').map((r,i)=>{
     const st=fresh?` style="animation-delay:${i*0.12}s"`:''; const nw=fresh?' new':'';
     if(r.kind==='note'&&!r.line.startsWith('git')) return `<div class="tl note${nw}"${st}>${esc(r.out)}</div>`;
-    return `<div class="tl${nw}"${st}><span class="pr${r.who==='ola'?' ola':''}">${esc(r.prompt)}</span> <span class="cm">${esc(r.line)}</span></div>`+(r.out?`<div class="tl ${r.kind==='err'?'err':'out'}${nw}"${st}>${esc(r.out)}</div>`:'<div class="tl out"></div>');
+    return `<div class="tl${nw}"${st}><span class="pr${r.who==='ola'?' ola':''}">${esc(r.prompt)}</span> <span class="cm">${esc(r.line)}</span></div>`+(r.out?`<div class="tl ${r.kind==='err'?'err':'out'}${nw}"${st}>${outHTML(r)}</div>`:'<div class="tl out"></div>');
   }).join('');
 }
 function renderLesson(ch){
@@ -1372,6 +1447,8 @@ function loadSandbox(){ if(sandboxState&&sbLoaded===sbKey) return; sbLoaded=sbKe
   if(d&&d.s&&d.s.local){sandboxState=ensureTeam(d.s); sandboxLog={ty:(d.log&&d.log.ty)||[],ola:(d.log&&d.log.ola)||[]};} else {sandboxState=freshSandbox(); sandboxLog={ty:[],ola:[]};} }
 const byAuthor=(s,name,id)=>[...anc(s,id)].some(x=>s.commits[x].author===name&&s.commits[x].parents.length<2);
 const TASKS=[
+  {t:'Zmień plik, dodaj go do poczekalni i obejrzyj zmiany, które wejdą do commita.',ok:s=>!!s.flags.diffStaged,
+   h:[['ty','edit index.html'],['ty','git diff'],['ty','git add index.html'],['ty','git diff --staged']],n:'Samo git diff po git add nic nie pokaże. Potrzebujesz flagi --staged.'},
   {t:'Jako Aleksandra zrób commit i push na main, a potem ściągnij go do siebie.',ok:s=>!!s.local.branches.main&&byAuthor(s,'Aleksandra',s.local.branches.main),
    h:[['ola','git switch main'],['ola','git commit -m "Cennik"'],['ola','git push'],['ty','git switch main'],['ty','git pull']],n:'Jeśli push Aleksandry zostanie odrzucony, niech najpierw zrobi git pull.'},
   {t:'Utwórz gałąź, wypchnij ją i otwórz pull request (gh pr create).',ok:s=>(s.prs||[]).some(p=>p.author==='ty'),
@@ -1393,6 +1470,7 @@ const HELP=`Obsługiwane polecenia (symulacja):
   git commit [-a] [-m "opis"] | branch [-d] [nazwa] | switch [-c] <gałąź>
   git checkout [-b] <gałąź|commit> | merge <ref> | rebase <ref> | cherry-pick <ref>
   git reset [--soft|--mixed|--hard] <ref> | revert <ref> | reflog
+  git diff [--staged] [--stat] [<ref> [<ref>]]
   git clone <url> | push [-u origin <gałąź>] | fetch [--prune] | pull [--rebase]
 GitHub CLI (pull requesty):
   gh pr create [--title "..."] [--body "..."]   gh pr list   gh pr view [nr]
@@ -1408,7 +1486,7 @@ function renderSandbox(mode){
   const termHTML=(who,label)=>`<div class="term sbterm ${who}" data-who="${who}"><div class="term-h"><i></i><i></i><i></i><span>${label}</span></div><div class="term-b"></div>
     <form class="tform"><span class="pr${who==='ola'?' ola':''}"></span><input id="tin-${who}" aria-label="Polecenie: ${label}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${who==='ola'?'gh pr list':'git status'}"></form></div>`;
   $('#main').innerHTML=`<section class="lesson">
-    <div class="lhead"><p class="eyebrow">Praktyka · rozdział ${ALL.indexOf(page)} z ${ALL.length-1}</p><h1>${page.title}</h1><p class="lead">${tasks?'Siedem zadań do wykonania po kolei. Masz dwa terminale: swój i Aleksandry. Jeśli utkniesz, kliknij żarówkę, a zobaczysz wszystkie potrzebne polecenia.':'Masz dwa terminale: swój i Aleksandry. Oboje macie sklonowane to samo repozytorium z GitHuba. Wpisuj polecenia za siebie i za nią: otwieraj pull requesty, recenzuj je w jej imieniu i obserwuj, jak zmiany przechodzą między trzema repozytoriami.'}</p></div>
+    <div class="lhead"><p class="eyebrow">Praktyka · rozdział ${ALL.indexOf(page)} z ${ALL.length-1}</p><h1>${page.title}</h1><p class="lead">${tasks?'Osiem zadań do wykonania po kolei. Masz dwa terminale: swój i Aleksandry. Jeśli utkniesz, kliknij żarówkę, a zobaczysz wszystkie potrzebne polecenia.':'Masz dwa terminale: swój i Aleksandry. Oboje macie sklonowane to samo repozytorium z GitHuba. Wpisuj polecenia za siebie i za nią: otwieraj pull requesty, recenzuj je w jej imieniu i obserwuj, jak zmiany przechodzą między trzema repozytoriami.'}</p></div>
     <div class="stage" id="stage">${panelsHTML(['local','remote','peer'])}</div>
     <div class="terms">${termHTML('ty','Ty · terminal')}${termHTML('ola','Aleksandra · terminal')}</div>
     <div class="sbgrid">
@@ -1445,7 +1523,7 @@ function renderSandbox(mode){
   const setActive=who=>{active=who; for(const k in T) T[k].el.classList.toggle('active',k===who);};
   const lineHTML=(r,nw)=>{
     if(r.kind==='note'&&!(r.line||'').startsWith('git')) return `<div class="tl note${nw}">${esc(r.out)}</div>`;
-    return `<div class="tl"><span class="pr${r.who==='ola'?' ola':''}">${esc(r.prompt)}</span> <span class="cm">${esc(r.line)}</span></div>`+(r.out?`<div class="tl ${r.kind==='err'?'err':'out'}${nw}">${esc(r.out)}</div>`:'<div class="tl out"></div>');
+    return `<div class="tl"><span class="pr${r.who==='ola'?' ola':''}">${esc(r.prompt)}</span> <span class="cm">${esc(r.line)}</span></div>`+(r.out?`<div class="tl ${r.kind==='err'?'err':'out'}${nw}">${outHTML(r)}</div>`:'<div class="tl out"></div>');
   };
   const paint=(freshWho)=>{
     for(const who of ['ty','ola']){ const t=T[who], log=sandboxLog[who];
