@@ -309,6 +309,7 @@ table.cmp th{font-family:var(--f-mono);font-size:calc(12px * var(--fs))}
 .small{font-size:calc(12px * var(--fs));color:var(--muted)}
 
 @media (prefers-reduced-motion:reduce){.tl.new{animation:none}}
+.simnote{margin:14px 0 0;padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--ok);border-radius:8px;background:var(--surface-2)}.simnote b{display:block;margin-bottom:4px}.simnote p{margin:0}
 </style>
 </head>
 <body>
@@ -951,7 +952,7 @@ const CH=[
   lead:'Historia w Gicie to łańcuch migawek. Zobacz, jak commity łączą się ze sobą i czym jest tajemniczy HEAD.',
   init:['git commit -m "Szkielet strony"'], steps:[
   {t:'Jedna migawka', c:['git log --oneline'], b:`<p>Każda kropka to commit, czyli migawka całego projektu w danej chwili. Pod kropką widzisz skrót hasha i opis.</p><p><code>git log --oneline</code> wypisuje historię w skróconej formie, po jednym commicie na linię.</p>`},
-  {t:'Każdy commit zna swojego rodzica', c:['git commit -m "Menu"','git commit -m "Stopka"'], b:`<p>Nowy commit zawsze wskazuje na poprzedni, czyli na swojego rodzica. Tak powstaje łańcuch: od najnowszego commita da się dojść do samego początku.</p><p>Linie na diagramie łączą commit z rodzicem. Git zapisuje tylko wskazania wstecz, nigdy w przód.</p>`},
+  {t:'Każdy commit zna swojego rodzica', c:['git commit -m "Menu"','git commit -m "Stopka"'], b:`<p>Nowy commit zawsze wskazuje na poprzedni, czyli na swojego rodzica. Tak powstaje łańcuch: od najnowszego commita da się dojść do samego początku.</p><p>Linie na diagramie łączą commit z rodzicem. Git zapisuje tylko wskazania wstecz, nigdy w przód.</p><div class="simnote"><b>Jak działa ten symulator</b><p>Od teraz, żeby skupić się na historii, piszemy samo <code>git commit -m "..."</code>. Symulator udaje, że zmieniłeś plik i dodałeś go do poczekalni. Na prawdziwym komputerze zawsze najpierw zmieniasz pliki i robisz <code>git add</code>, inaczej Git odpowie <i>nothing to commit</i>.</p></div>`},
   {t:'Hash to odcisk palca', c:['git log --oneline'], b:`<p>Hash to 40-znakowy identyfikator wyliczony z zawartości commita: plików, opisu, autora, daty i hasha rodzica. Zwykle wystarcza pierwszych 7 znaków.</p><p>Zmiana czegokolwiek w commicie daje zupełnie inny hash. Dlatego historii nie da się po cichu podmienić, a każda poprawka tworzy nowy commit.</p>`},
   {t:'HEAD pokazuje, gdzie jesteś', c:['git status'], b:`<p><b>HEAD</b> to wskaźnik na miejsce, w którym teraz pracujesz. Zwykle wskazuje na gałąź (tutaj <code>main</code>), a gałąź wskazuje na commit.</p><p>Gdy zrobisz commit, gałąź przesunie się na nowy commit, a HEAD pojedzie razem z nią.</p>`},
   {t:'Podróż w czasie', c:['git checkout HEAD~2'], b:`<p><code>HEAD~2</code> oznacza „dwa commity wstecz od HEAD”. Po <code>git checkout</code> pliki w katalogu roboczym wyglądają tak, jak wtedy.</p><p>HEAD wskazuje teraz bezpośrednio na commit, a nie na gałąź. To stan <b>detached HEAD</b>. Możesz się rozglądać, ale nowe commity nie będą należeć do żadnej gałęzi.</p>`},
